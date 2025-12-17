@@ -6,7 +6,10 @@ import { NavLink } from "react-router";
 const Navbar = () => {
   const links = <>
        <li> <NavLink> All Issues</NavLink></li>
-      <li><NavLink>About</NavLink></li>
+      <li><NavLink to='/help-guidlines'>Help & Guidelines</NavLink></li>
+            <li><NavLink to='/about'>About</NavLink></li>
+
+
   </>
     return (
 <div className="navbar bg-[#eff0e1] sticky top-0 z-50">
