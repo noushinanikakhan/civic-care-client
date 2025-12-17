@@ -5,7 +5,7 @@ import { NavLink } from "react-router";
 
 const Navbar = () => {
   const links = <>
-       <li> <NavLink> All Issues</NavLink></li>
+       <li> <NavLink to='all-issues'> All Issues</NavLink></li>
       <li><NavLink to='/help-guidlines'>Help & Guidelines</NavLink></li>
             <li><NavLink to='/about'>About</NavLink></li>
 
@@ -24,12 +24,12 @@ const Navbar = () => {
       {links}
       </ul>
     </div>
-    <a className=" text-xl md:text-4xl ">
+    <NavLink className=" text-xl md:text-4xl" to='/'>
        <div className="flex items-center justify-start gap-2">
          <Logo></Logo>
         <h2 className="text-[#2d361b] font-bold">CivicCare</h2>
        </div>
-    </a>
+    </NavLink>
   </div>
   <div className="navbar-center hidden lg:flex text-[#2d361b]">
     <ul className="menu menu-horizontal px-1">
@@ -37,7 +37,7 @@ const Navbar = () => {
     </ul>
   </div>
   <div className="navbar-end">
-    <a className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl ">Login</a>
+    <NavLink to='/login' className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl ">Login</NavLink>
   </div>
 </div>
     )
