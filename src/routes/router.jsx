@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import RootLayout from "../layouts/RootLayout";
 import Home from "../pages/Home/Home";
 import About from "../pages/About/About";
@@ -8,6 +8,12 @@ import AllIssues from "../pages/Home/AllIssues/AllIssues";
 import AuthLayout from "../layouts/AuthLayout";
 import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
+import PrivateRoute from "./PrivateRoute";
+import DashboardLayout from "../layouts/DashboardLayout";
+import Citizens from "../pages/Dashboard/Citizens/Citizens";
+import MyIssues from "../pages/Dashboard/Citizens/MyIssues";
+import ReportIssue from "../pages/Dashboard/Citizens/ReportIssue";
+import CitizenProfile from "../pages/Dashboard/Citizens/CitizenProfile";
 
 export const router = createBrowserRouter([
   {
@@ -45,6 +51,36 @@ export const router = createBrowserRouter([
         path: '/register',
         Component: Register,
       }
+    ]
+  },
+  {
+    path: 'dashboard',
+    element: <PrivateRoute><DashboardLayout></DashboardLayout></PrivateRoute>,
+    children: [
+       {
+      index: true, // This handles /dashboard
+      element: <Navigate to="citizens" replace />,
+      },
+      {
+        path: 'citizens',
+        children: [{
+        index: true,
+        Component: Citizens,
+        },
+       {
+            path: 'my-issues',
+            Component: MyIssues, // /dashboard/citizens/my-issues
+          },
+          {
+            path: 'report-issue',
+            Component: ReportIssue, // /dashboard/citizens/report-issue
+          },
+          {
+            path: 'profile',
+            Component: CitizenProfile, // /dashboard/citizens/profile
+          }
+      ]
+      },
     ]
   }
 ]);

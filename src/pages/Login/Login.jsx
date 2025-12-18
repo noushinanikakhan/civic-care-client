@@ -12,7 +12,8 @@ const Login = () => {
 
   const [loading, setLoading] = useState(false);
 
-  const { loginUser , googleSignIn } = useAuth(); // ✅ connect later
+  const { loginUser , googleSignIn } = useAuth(); 
+
 
   const handleLogin = async (e) => {
     e.preventDefault();
