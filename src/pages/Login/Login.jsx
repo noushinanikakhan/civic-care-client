@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import Swal from "sweetalert2";
-// import useAuth from "../../../hooks/useAuth"; // ✅ use your actual path
+import useAuth from "../../hooks/useAuth";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,7 +12,7 @@ const Login = () => {
 
   const [loading, setLoading] = useState(false);
 
-//   const { loginUser, googleSignIn } = useAuth(); // ✅ connect later
+  const { loginUser , googleSignIn } = useAuth(); // ✅ connect later
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -33,7 +33,7 @@ const Login = () => {
       setLoading(true);
 
       // ✅ connect your auth
-      // await loginUser(email, password);
+      await loginUser(email, password);
 
       Swal.fire({
         icon: "success",

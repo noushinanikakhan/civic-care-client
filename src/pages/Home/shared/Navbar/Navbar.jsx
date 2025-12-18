@@ -2,8 +2,22 @@ import React from "react";
 // import logo from "../../../../assets/rsz_logociviccare111.png"
 import Logo from "../../../../components/Logo/Logo";
 import { NavLink } from "react-router";
+import useAuth from "../../../../hooks/useAuth";
 
 const Navbar = () => {
+
+  const { user, logoutUser } = useAuth();
+
+    // ADD THESE CONSOLE LOGS:
+  console.log("Navbar - user object:", user);
+  console.log("Navbar - user exists?", !!user);
+  console.log("Navbar - user email:", user?.email);
+
+  const handleLogout = async () => {
+  await logoutUser();
+};
+
+
   const links = <>
        <li> <NavLink to='all-issues'> All Issues</NavLink></li>
       <li><NavLink to='/help-guidlines'>Help & Guidelines</NavLink></li>
@@ -36,10 +50,88 @@ const Navbar = () => {
   {links}
     </ul>
   </div>
-  <div className="navbar-end">
-    <NavLink to='/register'  className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl "> Register</NavLink>
-    <NavLink to='/login' className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl ">Login</NavLink>
-  </div>
+<div className="navbar-end">
+  {user ? (
+    <div className="dropdown dropdown-end">
+      <label tabIndex={0} className="btn btn-ghost btn-circle avatar">
+        <div className="w-10 rounded-full border border-[#2d361b]/30 bg-[#2d361b]/10">
+          <img
+            src={user?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${user?.email}&backgroundColor=2d361b&fontColor=d6d37c`}
+            alt="Profile"
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </label>
+
+      <ul
+        tabIndex={0}
+        className="menu menu-sm dropdown-content bg-[#eff0e1] rounded-box z-50 mt-3 w-56 p-2 shadow-lg border border-[#2d361b]/10"
+      >
+        {/* User Info Section */}
+        <li className="px-3 py-3 cursor-default border-b border-[#2d361b]/10">
+          <div>
+            <p className="text-[#2d361b] font-bold text-sm">
+              {user?.displayName || user?.email?.split('@')[0] || "Citizen"}
+            </p>
+            <p className="text-xs text-[#2d361b]/70 mt-1 truncate">{user?.email}</p>
+          </div>
+        </li>
+
+        {/* Dashboard Link */}
+        <li>
+          <NavLink 
+            to="/dashboard" 
+            className="text-[#2d361b] hover:bg-[#2d361b]/10 hover:text-[#2d361b] rounded-lg"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            Dashboard
+          </NavLink>
+        </li>
+
+        {/* Premium Badge (if user is premium) - Optional for later */}
+        {/* <li className="px-3 py-2">
+          <span className="badge badge-success badge-sm text-white bg-[#2d361b]">
+            Premium
+          </span>
+        </li> */}
+
+        {/* Logout Button */}
+        <li className="mt-1">
+          <button 
+            onClick={handleLogout} 
+            className="text-[#b91c1c] hover:bg-red-50 hover:text-red-700 rounded-lg flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Logout
+          </button>
+        </li>
+      </ul>
+    </div>
+  ) : (
+    <>
+      <NavLink
+        to="/register"
+        className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl hover:bg-[#1f2613] border-none"
+      >
+        Register
+      </NavLink>
+      <NavLink
+        to="/login"
+        className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl hover:bg-[#1f2613] border-none ml-2"
+      >
+        Login
+      </NavLink>
+    </>
+  )}
+</div>
+
+
+
 </div>
     )
 }
