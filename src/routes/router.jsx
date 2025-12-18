@@ -16,6 +16,7 @@ import ReportIssue from "../pages/Dashboard/Citizens/ReportIssue";
 import CitizenProfile from "../pages/Dashboard/Citizens/CitizenProfile";
 import StaffDashboard from "../pages/Dashboard/staff/StaffDashboard";
 import AdminDashboard from "../pages/Dashboard/Admin/AdminDashboard";
+import IssueDetails from "../pages/IssueDetails/IssueDetails";
 
 export const router = createBrowserRouter([
   {
@@ -31,6 +32,10 @@ export const router = createBrowserRouter([
             path: '/all-issues',
             Component: AllIssues,
         },
+      {
+        path: '/issues/:id',
+        element: <PrivateRoute><IssueDetails /></PrivateRoute>,
+      },
         {
           path: '/about',
           Component: About, 

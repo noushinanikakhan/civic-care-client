@@ -1,294 +1,290 @@
-import React, { useMemo, useState } from "react";
-import { Link } from "react-router";
+import React, { useContext, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
+import Swal from "sweetalert2";
+import { AuthContext } from "../../../context/AuthContext/AuthContext";
+
+const API_BASE = "http://localhost:3000";
 
 const AllIssues = () => {
-  // UI state (later you’ll send these to server as query params)
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [category, setCategory] = useState("all");
-  const [priority, setPriority] = useState("all");
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // ✅ server-side controls
   const [page, setPage] = useState(1);
-  const limit = 6;
+  const [limit] = useState(9);
 
-  // ✅ temporary mock data (replace with axios call later)
-  const { data: issues = [], isLoading } = useQuery({
-    queryKey: ["issues", { search, status, category, priority, page, limit }],
+  // inputs (search/filter)
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState(""); // applied search
+
+  const [category, setCategory] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [priority, setPriority] = useState("all");
+
+  // build query string for server
+  const queryString = useMemo(() => {
+    const qs = new URLSearchParams();
+    qs.set("page", page);
+    qs.set("limit", limit);
+    if (search) qs.set("search", search);
+    if (category) qs.set("category", category);
+    if (status) qs.set("status", status);
+    if (priority) qs.set("priority", priority);
+    return qs.toString();
+  }, [page, limit, search, category, status, priority]);
+
+  const {
+    data,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["issues", page, limit, search, category, status, priority],
     queryFn: async () => {
-      // Mock list (keep it small; you’ll replace with API)
-      const mock = [
-        {
-          _id: "1",
-          title: "Streetlight not working near bus stop",
-          category: "Streetlight",
-          status: "pending",
-          priority: "normal",
-          location: "Sylhet, Ambarkhana",
-          image:
-            "https://images.unsplash.com/photo-1504196606672-aef5c9cefc92?auto=format&fit=crop&w=1200&q=60",
-          upvoteCount: 12,
-        },
-        {
-          _id: "2",
-          title: "Garbage overflow beside main road",
-          category: "Waste",
-          status: "in-progress",
-          priority: "high",
-          location: "Sylhet, Zindabazar",
-          image:
-            "https://images.unsplash.com/photo-1528323273322-d81458248d40?auto=format&fit=crop&w=1200&q=60",
-          upvoteCount: 29,
-        },
-        {
-          _id: "3",
-          title: "Pothole causing traffic jam",
-          category: "Road",
-          status: "working",
-          priority: "normal",
-          location: "Sylhet, Shahjalal Uposhohor",
-          image:
-            "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1200&q=60",
-          upvoteCount: 44,
-        },
-        {
-          _id: "4",
-          title: "Water leakage on footpath",
-          category: "Water",
-          status: "resolved",
-          priority: "high",
-          location: "Sylhet, Subidbazar",
-          image:
-            "https://images.unsplash.com/photo-1523413651479-597eb2da0ad6?auto=format&fit=crop&w=1200&q=60",
-          upvoteCount: 18,
-        },
-        {
-          _id: "5",
-          title: "Damaged footpath near school gate",
-          category: "Footpath",
-          status: "pending",
-          priority: "normal",
-          location: "Sylhet, Tilagor",
-          image:
-            "https://images.unsplash.com/photo-1560438718-eb61ede255eb?auto=format&fit=crop&w=1200&q=60",
-          upvoteCount: 6,
-        },
-        {
-          _id: "6",
-          title: "Drain blockage after rainfall",
-          category: "Drainage",
-          status: "closed",
-          priority: "normal",
-          location: "Sylhet, Chowhatta",
-          image:
-            "https://images.unsplash.com/photo-1523413651479-597eb2da0ad6?auto=format&fit=crop&w=1200&q=60",
-          upvoteCount: 9,
-        },
-      ];
-
-      // Client-side filtering for now (server-side later)
-      const s = search.toLowerCase();
-      let filtered = mock.filter((i) =>
-        i.title.toLowerCase().includes(s) ||
-        i.location.toLowerCase().includes(s) ||
-        i.category.toLowerCase().includes(s)
-      );
-
-      if (status !== "all") filtered = filtered.filter((i) => i.status === status);
-      if (category !== "all") filtered = filtered.filter((i) => i.category === category);
-      if (priority !== "all") filtered = filtered.filter((i) => i.priority === priority);
-
-      // Boosted first (requirement)
-      filtered = filtered.sort((a, b) => {
-        const pa = a.priority === "high" ? 1 : 0;
-        const pb = b.priority === "high" ? 1 : 0;
-        return pb - pa;
-      });
-
-      // Pagination
-      const start = (page - 1) * limit;
-      return filtered.slice(start, start + limit);
+      const res = await fetch(`${API_BASE}/issues?${queryString}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || "Failed to load issues");
+      return json;
     },
+    keepPreviousData: true,
   });
 
-  // For UI dropdown options (static list now; later derive from DB)
-  const categories = useMemo(
-    () => ["all", "Road", "Streetlight", "Water", "Waste", "Footpath", "Drainage"],
-    []
-  );
+  const issues = data?.issues || [];
+  const totalPages = data?.totalPages || 1;
 
-  const getStatusBadge = (s) => {
-    if (s === "pending") return "badge badge-warning text-[#2d361b]";
-    if (s === "in-progress") return "badge badge-info text-white";
-    if (s === "working") return "badge badge-primary text-white";
-    if (s === "resolved") return "badge badge-success text-white";
-    if (s === "closed") return "badge badge-neutral text-white";
-    if (s === "rejected") return "badge badge-error text-white";
-    return "badge";
+  // ✅ Apply search
+  const handleApplySearch = (e) => {
+    e.preventDefault();
+    setPage(1);
+    setSearch(searchInput.trim());
   };
 
-  const getPriorityBadge = (p) =>
-    p === "high"
-      ? "badge badge-success text-white"
-      : "badge badge-outline text-[#2d361b] border-[#2d361b]/40";
+  // ✅ Filter change (server-side)
+  const handleFilterChange = (setter) => (e) => {
+    setter(e.target.value);
+    setPage(1);
+  };
+
+  // ✅ Upvote rules + SweetAlert + instant update
+  const handleUpvote = async (issue) => {
+    if (!user?.email) {
+      Swal.fire({
+        icon: "info",
+        title: "Login Required",
+        text: "You must login to upvote an issue.",
+        confirmButtonText: "Go to Login",
+      }).then(() => navigate("/login", { state: location.pathname }));
+      return;
+    }
+
+    const ownerEmail = issue.userEmail || issue.reportedBy;
+    if (ownerEmail && ownerEmail === user.email) {
+      Swal.fire({
+        icon: "warning",
+        title: "Not Allowed",
+        text: "You cannot upvote your own issue.",
+      });
+      return;
+    }
+
+    const res = await fetch(`${API_BASE}/issues/${issue._id}/upvote`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userEmail: user.email }),
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      Swal.fire({
+        icon: "error",
+        title: "Upvote Failed",
+        text: result?.message || "Something went wrong",
+      });
+      return;
+    }
+
+    Swal.fire({
+      icon: "success",
+      title: "Upvoted!",
+      timer: 900,
+      showConfirmButton: false,
+    });
+
+    // ✅ instant UI update
+    refetch();
+  };
+
+  // ✅ loader requirement
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
+  }
 
   return (
-    <section className="bg-[#eff0e1]">
-      <div className="w-11/12 mx-auto py-10 lg:py-14">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-[#2d361b]">
-              All Issues
-            </h1>
-            <p className="mt-2 text-[#2d361b]/80 max-w-2xl">
-              Browse reported public infrastructure problems with status, priority, and community upvotes.
-            </p>
-          </div>
+    <section className="w-11/12 mx-auto py-10">
+      <div className="mb-6">
+        <h2 className="text-3xl font-bold text-[#2d361b]">All Issues</h2>
+        <p className="text-[#2d361b]/80">
+          Search, filter and upvote issues to show public importance.
+        </p>
+      </div>
 
-          {/* Search */}
-          <div className="w-full lg:w-[420px]">
-            <label className="input input-bordered flex items-center gap-2 bg-white">
-              <input
-                type="text"
-                className="grow"
-                placeholder="Search by title, category, or location..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-              />
-              <span className="text-[#2d361b]/60 text-sm">⌕</span>
-            </label>
-          </div>
-        </div>
+      {/* ✅ Search + Filters */}
+      <div className="bg-white rounded-2xl shadow p-4 mb-6">
+        <form
+          onSubmit={handleApplySearch}
+          className="flex flex-col lg:flex-row gap-3 lg:items-center"
+        >
+          <input
+            type="text"
+            placeholder="Search by title, category, location..."
+            className="input input-bordered w-full lg:w-[380px]"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
 
-        {/* Filters */}
-        <div className="mt-8 grid gap-3 md:grid-cols-3">
           <select
-            className="select select-bordered bg-white"
+            className="select select-bordered w-full lg:w-52"
             value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setPage(1);
-            }}
+            onChange={handleFilterChange(setCategory)}
           >
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c === "all" ? "All Categories" : c}
-              </option>
-            ))}
+            <option value="all">All Categories</option>
+            <option value="Road">Road</option>
+            <option value="Water">Water</option>
+            <option value="Electricity">Electricity</option>
+            <option value="Garbage">Garbage</option>
           </select>
 
           <select
-            className="select select-bordered bg-white"
+            className="select select-bordered w-full lg:w-52"
             value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
+            onChange={handleFilterChange(setStatus)}
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
             <option value="in-progress">In-Progress</option>
-            <option value="working">Working</option>
             <option value="resolved">Resolved</option>
             <option value="closed">Closed</option>
-            <option value="rejected">Rejected</option>
           </select>
 
           <select
-            className="select select-bordered bg-white"
+            className="select select-bordered w-full lg:w-52"
             value={priority}
-            onChange={(e) => {
-              setPriority(e.target.value);
-              setPage(1);
-            }}
+            onChange={handleFilterChange(setPriority)}
           >
             <option value="all">All Priority</option>
-            <option value="high">High (Boosted)</option>
             <option value="normal">Normal</option>
+            <option value="high">High</option>
           </select>
-        </div>
 
-        {/* Loader */}
-        {isLoading && (
-          <div className="mt-10 flex justify-center">
-            <span className="loading loading-spinner loading-lg text-[#2d361b]"></span>
-          </div>
-        )}
+          <button className="btn rounded-xl" type="submit">
+            Search
+          </button>
 
-        {/* Cards */}
-        {!isLoading && (
-          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {issues.map((issue) => (
-              <div
-                key={issue._id}
-                className="rounded-3xl overflow-hidden bg-white/60 border border-[#2d361b]/10"
-              >
-                <img
-                  src={issue.image}
-                  alt={issue.title}
-                  className="h-44 w-full object-cover"
-                />
+          {/* ✅ small fetching indicator (while changing page/filter/search) */}
+          {isFetching && (
+            <span className="ml-1 text-sm text-[#2d361b]/70">
+              Loading...
+            </span>
+          )}
+        </form>
+      </div>
 
-                <div className="p-5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold text-[#2d361b]/80">
-                      {issue.category}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className={getPriorityBadge(issue.priority)}>
-                        {issue.priority === "high" ? "High" : "Normal"}
-                      </span>
-                      <span className={getStatusBadge(issue.status)}>
-                        {issue.status}
-                      </span>
-                    </div>
-                  </div>
+      {/* ✅ Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {issues.map((issue) => (
+          <div
+            key={issue._id}
+            className="card bg-white shadow-md rounded-2xl overflow-hidden"
+          >
+            <figure className="h-44">
+              <img
+                src={issue.image}
+                alt={issue.title}
+                className="h-full w-full object-cover"
+              />
+            </figure>
 
-                  <h3 className="mt-3 text-xl font-bold text-[#2d361b] line-clamp-2">
-                    {issue.title}
-                  </h3>
+            <div className="card-body">
+              <h3 className="text-lg font-bold text-[#2d361b]">
+                {issue.title}
+              </h3>
 
-                  <p className="mt-2 text-[#2d361b]/75 text-sm">
-                    📍 {issue.location}
-                  </p>
+              <div className="flex flex-wrap gap-2 text-sm">
+                <span className="badge badge-outline">
+                  {issue.category || "N/A"}
+                </span>
 
-                  <div className="mt-5 flex items-center justify-between">
-                    <button className="btn btn-ghost text-[#2d361b]">
-                      ▲ {issue.upvoteCount}
-                    </button>
+                <span className="badge">{issue.status || "pending"}</span>
 
-                    <Link
-                      to={`/issues/${issue._id}`}
-                      className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl border-none"
-                    >
-                      View Details
-                    </Link>
-                  </div>
-                </div>
+                <span className="badge badge-outline">
+                  {issue.priority === "high" ? "High" : "Normal"}
+                </span>
+
+                {issue.isBoosted && (
+                  <span className="badge badge-warning">Boosted</span>
+                )}
               </div>
-            ))}
+
+              <p className="text-sm text-[#2d361b]/80 mt-2">
+                <span className="font-semibold">Location:</span>{" "}
+                {issue.location || "N/A"}
+              </p>
+
+              <div className="mt-4 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => handleUpvote(issue)}
+                  className="btn btn-sm rounded-xl"
+                >
+                  ▲ {issue.upvoteCount || 0}
+                </button>
+
+                <Link
+                  to={`/issues/${issue._id}`}
+                  className="btn btn-sm rounded-xl"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {issues.length === 0 && (
+          <div className="col-span-full text-center py-16 text-[#2d361b]/70">
+            No issues found.
           </div>
         )}
+      </div>
 
-        {/* Pagination (UI-ready) */}
-        <div className="mt-12 flex items-center justify-center gap-3">
-          <button
-            className="btn btn-outline border-[#2d361b] text-[#2d361b] rounded-2xl"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Prev
-          </button>
-          <span className="font-semibold text-[#2d361b]">Page {page}</span>
-          <button
-            className="btn btn-outline border-[#2d361b] text-[#2d361b] rounded-2xl"
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </button>
-        </div>
+      {/* ✅ Pagination */}
+      <div className="mt-10 flex items-center justify-center gap-2">
+        <button
+          className="btn btn-sm"
+          disabled={page <= 1}
+          onClick={() => setPage((p) => p - 1)}
+        >
+          Prev
+        </button>
+
+        <span className="px-3 text-[#2d361b] font-medium">
+          Page {page} / {totalPages}
+        </span>
+
+        <button
+          className="btn btn-sm"
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </button>
       </div>
     </section>
   );
