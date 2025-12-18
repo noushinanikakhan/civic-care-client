@@ -14,6 +14,8 @@ import Citizens from "../pages/Dashboard/Citizens/Citizens";
 import MyIssues from "../pages/Dashboard/Citizens/MyIssues";
 import ReportIssue from "../pages/Dashboard/Citizens/ReportIssue";
 import CitizenProfile from "../pages/Dashboard/Citizens/CitizenProfile";
+import StaffDashboard from "../pages/Dashboard/staff/StaffDashboard";
+import AdminDashboard from "../pages/Dashboard/Admin/AdminDashboard";
 
 export const router = createBrowserRouter([
   {
@@ -81,6 +83,20 @@ export const router = createBrowserRouter([
           }
       ]
       },
+      {
+        path: 'staff',
+        children: [{
+          index: true,
+          Component: StaffDashboard, // /dashboard/staff
+        }]
+      },
+      {
+        path: 'admin',
+        children: [{
+          index: true,
+          Component: AdminDashboard, // /dashboard/admin
+        }]
+      }
     ]
   }
 ]);

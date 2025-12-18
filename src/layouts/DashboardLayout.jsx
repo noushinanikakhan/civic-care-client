@@ -24,6 +24,18 @@ const DashboardLayout = () => {
               CivicCare Dashboard
             </span>
           </div>
+          
+          {/* Role Switcher - Static for now */}
+          <div className="dropdown dropdown-end">
+            <div tabIndex={0} role="button" className="btn btn-sm btn-outline border-[#2d361b] text-[#2d361b]">
+              Role: Citizen
+            </div>
+            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow">
+              <li><Link to="/dashboard/citizens">Citizen Panel</Link></li>
+              <li><Link to="/dashboard/staff">Staff Panel</Link></li>
+              <li><Link to="/dashboard/admin">Admin Panel</Link></li>
+            </ul>
+          </div>
         </nav>
 
         {/* PAGE CONTENT */}
@@ -41,6 +53,23 @@ const DashboardLayout = () => {
           <div className="mb-8 flex items-center gap-2">
             <Logo size={28} />
             <h2 className="text-lg font-semibold">Citizen Panel</h2>
+          </div>
+
+          {/* Role Switcher in Sidebar */}
+          <div className="mb-6">
+            <div className="dropdown">
+              <div tabIndex={0} role="button" className="btn btn-sm btn-outline border-[#2d361b] text-[#2d361b] w-full justify-start">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M19 9l-7 7-7-7" />
+                </svg>
+                Switch Role
+              </div>
+              <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-[1] w-full p-2 shadow">
+                <li><Link to="/dashboard/citizens" className="active:bg-[#d6d37c]/30">Citizen Panel</Link></li>
+                <li><Link to="/dashboard/staff" className="active:bg-[#d6d37c]/30">Staff Panel</Link></li>
+                <li><Link to="/dashboard/admin" className="active:bg-[#d6d37c]/30">Admin Panel</Link></li>
+              </ul>
+            </div>
           </div>
 
           {/* Navigation */}
