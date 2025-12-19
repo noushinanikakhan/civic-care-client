@@ -310,9 +310,9 @@ const ReportIssue = () => {
                       Select Photo
                       <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" required />
                     </label>
-                    <p className="text-xs text-[#2d361b]/60 mt-2">
+                    {/* <p className="text-xs text-[#2d361b]/60 mt-2">
                       (If you face 413 error, use image URL hosting like imgbb later.)
-                    </p>
+                    </p> */}
                   </div>
                 )}
               </div>

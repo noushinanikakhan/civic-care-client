@@ -134,10 +134,11 @@ const AllIssues = () => {
             onChange={(e) => setCategory(e.target.value)}
           >
             <option value="all">All Categories</option>
-            <option value="Road">Road</option>
-            <option value="Water">Water</option>
-            <option value="Electricity">Electricity</option>
-            <option value="Garbage">Garbage</option>
+            <option value="Road">Road Damage & Potholes</option>
+            <option value="Water">Water Leakage</option>
+            <option value="Electricity">Streetlight Issues</option>
+            <option value="Garbage">Garbage & Sanitation</option>
+            <option value="Other">Other</option>
           </select>
 
           <select
@@ -149,7 +150,7 @@ const AllIssues = () => {
             <option value="pending">Pending</option>
             <option value="in-progress">In-Progress</option>
             <option value="resolved">Resolved</option>
-            <option value="closed">Closed</option>
+     
           </select>
 
           <select

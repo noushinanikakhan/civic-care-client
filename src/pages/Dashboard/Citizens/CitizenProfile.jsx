@@ -3,18 +3,20 @@ import Swal from "sweetalert2";
 import { useQuery } from "@tanstack/react-query";
 import useAuth from "../../../hooks/useAuth";
 import { API_BASE } from "../../../utils/api";
+import { authFetch } from "../../../utils/authFetch";
 
 const CitizenProfile = () => {
   const { user } = useAuth();
   const [editMode, setEditMode] = useState(false);
 
+  
+
   const profileQuery = useQuery({
     queryKey: ["user-profile", user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
-      const res = await fetch(
-        `${API_BASE}/users/profile/${encodeURIComponent(user.email)}`
-      );
+     const res = await authFetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`);
+
       if (!res.ok) throw new Error("Failed to load profile");
       return res.json();
     },

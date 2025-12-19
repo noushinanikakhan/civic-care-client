@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Swal from "sweetalert2";
@@ -11,14 +11,20 @@ const MyIssues = () => {
 
   const modalRef = useRef(null);
   const [selectedIssue, setSelectedIssue] = useState(null);
+
+  // ✅ CHANGED: remove URL-based image field usage in UI; keep image as string in payload
   const [editForm, setEditForm] = useState({
     title: "",
     category: "",
     priority: "normal",
     location: "",
     description: "",
-    image: "",
+    image: "", // will be final URL saved in DB
   });
+
+  // ✅ ADDED: file upload state for modal
+  const [newImageFile, setNewImageFile] = useState(null);
+  const [newImagePreview, setNewImagePreview] = useState(null);
 
   // ✅ fetch my issues
   const { data, isLoading, isError } = useQuery({
@@ -85,6 +91,28 @@ const MyIssues = () => {
     },
   });
 
+  // ✅ CHANGED: helper to upload image file to imgbb (prevents 413)
+  const uploadToImgbb = async (file) => {
+    const key = import.meta.env.VITE_image_host_key; // ✅ you already used this pattern before
+    if (!key) throw new Error("Missing VITE_image_host_key in client .env");
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const url = `https://api.imgbb.com/1/upload?key=${key}`;
+    const res = await fetch(url, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data?.success) {
+      throw new Error("Image upload failed");
+    }
+
+    return data.data.display_url; // final hosted image URL
+  };
+
   // ✅ Edit mutation: PATCH /issues/:id
   const editMutation = useMutation({
     mutationFn: async ({ id, payload }) => {
@@ -98,7 +126,6 @@ const MyIssues = () => {
       return data; // { success: true, issue: updatedIssue }
     },
 
-    // ✅ UI instantly update (no wait for refetch)
     onSuccess: async (data) => {
       const updated = data?.issue;
 
@@ -109,7 +136,7 @@ const MyIssues = () => {
         return { ...old, issues: newIssues };
       });
 
-      // 2) also update public issues cache if you use it elsewhere
+      // 2) update public issues cache
       queryClient.setQueriesData({ queryKey: ["issues"] }, (old) => {
         if (!old?.issues || !updated?._id) return old;
         const newIssues = old.issues.map((it) => (it._id === updated._id ? updated : it));
@@ -119,6 +146,10 @@ const MyIssues = () => {
       // 3) close modal
       modalRef.current?.close();
 
+      // ✅ reset file state after success
+      setNewImageFile(null);
+      setNewImagePreview(null);
+
       Swal.fire({
         icon: "success",
         title: "Updated!",
@@ -126,7 +157,6 @@ const MyIssues = () => {
         confirmButtonColor: "#2d361b",
       });
 
-      // optional: keep data fresh
       await queryClient.invalidateQueries({ queryKey: ["citizen-stats", user?.email] });
     },
 
@@ -143,14 +173,20 @@ const MyIssues = () => {
   // ✅ open modal with prefilled data
   const openEditModal = (issue) => {
     setSelectedIssue(issue);
+
     setEditForm({
       title: issue.title || "",
       category: issue.category || "",
       priority: issue.priority || "normal",
       location: issue.location || "",
       description: issue.description || "",
-      image: issue.image || "",
+      image: issue.image || "", // existing URL
     });
+
+    // ✅ reset file on open
+    setNewImageFile(null);
+    setNewImagePreview(null);
+
     modalRef.current?.showModal();
   };
 
@@ -159,12 +195,30 @@ const MyIssues = () => {
     setEditForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const submitEdit = (e) => {
-    e.preventDefault();
+  // ✅ ADDED: file picker handler
+  const onPickImage = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
+    // optional: simple size guard (prevents huge uploads)
+    if (file.size > 2 * 1024 * 1024) {
+      Swal.fire({
+        icon: "info",
+        title: "Image too large",
+        text: "Please select an image under 2MB.",
+        confirmButtonColor: "#2d361b",
+      });
+      return;
+    }
+
+    setNewImageFile(file);
+    setNewImagePreview(URL.createObjectURL(file));
+  };
+
+  const submitEdit = async (e) => {
+    e.preventDefault();
     if (!selectedIssue?._id) return;
 
-    // ✅ requirement: edit allowed only if pending
     if ((selectedIssue.status || "").toLowerCase() !== "pending") {
       Swal.fire({
         icon: "info",
@@ -175,16 +229,40 @@ const MyIssues = () => {
       return;
     }
 
-    const payload = {
-      title: editForm.title.trim(),
-      category: editForm.category,
-      priority: editForm.priority,
-      location: editForm.location.trim(),
-      description: editForm.description.trim(),
-      image: editForm.image.trim(), // use URL (avoid base64 -> 413)
-    };
+    try {
+      // ✅ CHANGED: if user selected a new file, upload it and use URL
+      let finalImageUrl = editForm.image;
 
-    editMutation.mutate({ id: selectedIssue._id, payload });
+      if (newImageFile) {
+        Swal.fire({
+          title: "Uploading image...",
+          text: "Please wait",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        finalImageUrl = await uploadToImgbb(newImageFile);
+        Swal.close();
+      }
+
+      const payload = {
+        title: editForm.title.trim(),
+        category: editForm.category,
+        priority: editForm.priority,
+        location: editForm.location.trim(),
+        description: editForm.description.trim(),
+        image: finalImageUrl, // ✅ always a URL (no 413)
+      };
+
+      editMutation.mutate({ id: selectedIssue._id, payload });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Image upload failed",
+        text: err.message,
+        confirmButtonColor: "#2d361b",
+      });
+    }
   };
 
   if (isLoading) {
@@ -392,20 +470,38 @@ const MyIssues = () => {
                 />
               </div>
 
+              {/* ✅ CHANGED: remove Image URL input, use file upload */}
               <div>
                 <label className="label">
-                  <span className="label-text text-[#2d361b] font-semibold">Image URL</span>
+                  <span className="label-text text-[#2d361b] font-semibold">Update Image</span>
                 </label>
+
                 <input
-                  name="image"
-                  value={editForm.image}
-                  onChange={onEditChange}
-                  className="input input-bordered w-full bg-white"
-                  placeholder="https://..."
+                  type="file"
+                  accept="image/*"
+                  onChange={onPickImage}
+                  className="file-input file-input-bordered w-full bg-white"
                 />
-                <p className="text-xs text-[#2d361b]/60 mt-1">
-                  Use image URL to avoid 413 Payload Too Large.
-                </p>
+
+                <div className="mt-3">
+                  {newImagePreview ? (
+                    <img
+                      src={newImagePreview}
+                      alt="New preview"
+                      className="w-full max-h-56 object-cover rounded-xl border border-[#2d361b]/10"
+                    />
+                  ) : editForm.image ? (
+                    <img
+                      src={editForm.image}
+                      alt="Current"
+                      className="w-full max-h-56 object-cover rounded-xl border border-[#2d361b]/10"
+                    />
+                  ) : null}
+                </div>
+
+                {/* <p className="text-xs text-[#2d361b]/60 mt-1">
+                  (This uploads to imgbb and saves the URL, so you won’t get 413.)
+                </p> */}
               </div>
 
               <div>
