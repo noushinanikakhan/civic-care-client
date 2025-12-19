@@ -36,7 +36,7 @@ const IssueDetails = () => {
   const upvoteMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`http://localhost:3000/issues/${id}/upvote`, {
-        method: "POST",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userEmail: user?.email }),
       });

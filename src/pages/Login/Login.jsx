@@ -61,7 +61,7 @@ const Login = () => {
       setLoading(true);
 
       // ✅ connect your auth
-      // await googleSignIn();
+      await googleSignIn();
 
       Swal.fire({
         icon: "success",
