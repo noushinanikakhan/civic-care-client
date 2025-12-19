@@ -12,7 +12,9 @@ const CitizenProfile = () => {
     queryKey: ["user-profile", user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`);
+      const res = await fetch(
+        `${API_BASE}/users/profile/${encodeURIComponent(user.email)}`
+      );
       if (!res.ok) throw new Error("Failed to load profile");
       return res.json();
     },
@@ -22,12 +24,40 @@ const CitizenProfile = () => {
     queryKey: ["my-issues", user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/issues?reportedBy=${encodeURIComponent(user.email)}&page=1&limit=50`);
+      const res = await fetch(
+        `${API_BASE}/issues?reportedBy=${encodeURIComponent(
+          user.email
+        )}&page=1&limit=50`
+      );
       if (!res.ok) throw new Error("Failed to load issues");
       return res.json();
     },
   });
 
+  // ✅ IMPORTANT: compute safe values BEFORE any return
+  const profile = profileQuery.data || {};
+  const issues = issuesQuery.data?.issues || [];
+
+  const isPremium = !!profile?.isPremium;
+  const isBlocked = !!profile?.isBlocked;
+
+  // ✅ IMPORTANT: useMemo must be above any return (fixes hook order crash)
+  const stats = useMemo(() => {
+    const total = issues.length;
+    const pending = issues.filter(
+      (i) => (i.status || "").toLowerCase() === "pending"
+    ).length;
+    const resolved = issues.filter(
+      (i) => (i.status || "").toLowerCase() === "resolved"
+    ).length;
+    return { total, pending, resolved };
+  }, [issues]);
+
+  const issueLimit = isPremium ? Infinity : 3;
+  const issuesUsed = issues.length;
+  const remaining = isPremium ? "Unlimited" : Math.max(0, 3 - issuesUsed);
+
+  // ✅ Now it's safe to return early (ALL hooks already ran)
   if (!user || profileQuery.isLoading || issuesQuery.isLoading) {
     return (
       <div className="min-h-screen bg-[#eff0e1] flex items-center justify-center">
@@ -44,29 +74,14 @@ const CitizenProfile = () => {
     );
   }
 
-  const profile = profileQuery.data;
-  const issues = issuesQuery.data?.issues || [];
-
-  const isPremium = !!profile?.isPremium;
-  const isBlocked = !!profile?.isBlocked;
-
-  const stats = useMemo(() => {
-    const total = issues.length;
-    const pending = issues.filter(i => (i.status || "").toLowerCase() === "pending").length;
-    const resolved = issues.filter(i => (i.status || "").toLowerCase() === "resolved").length;
-    return { total, pending, resolved };
-  }, [issues]);
-
-  const issueLimit = isPremium ? Infinity : 3;
-  const issuesUsed = issues.length;
-  const remaining = isPremium ? "Unlimited" : Math.max(0, 3 - issuesUsed);
-
   return (
     <section className="bg-[#eff0e1] min-h-screen py-8">
       <div className="w-11/12 mx-auto max-w-6xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#2d361b]">My Profile</h1>
-          <p className="text-[#2d361b]/70 mt-2">Manage your account and check activity</p>
+          <p className="text-[#2d361b]/70 mt-2">
+            Manage your account and check activity
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -78,7 +93,9 @@ const CitizenProfile = () => {
                     src={
                       user.photoURL ||
                       profile.photoURL ||
-                      `https://api.dicebear.com/7.x/initials/svg?seed=${user.displayName || user.email}&backgroundColor=2d361b&fontColor=d6d37c`
+                      `https://api.dicebear.com/7.x/initials/svg?seed=${
+                        user.displayName || user.email
+                      }&backgroundColor=2d361b&fontColor=d6d37c`
                     }
                     alt="Profile"
                     className="w-32 h-32 rounded-full border-4 border-[#2d361b]/30 object-cover"
@@ -92,19 +109,29 @@ const CitizenProfile = () => {
 
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold text-[#2d361b]">
-                    {user.displayName || profile.name || user.email?.split("@")[0]}
+                    {user.displayName ||
+                      profile.name ||
+                      user.email?.split("@")[0]}
                   </h2>
                   <p className="text-[#2d361b]/70">{user.email}</p>
 
-                  <div className="flex gap-2 mt-3">
-                    <span className={`badge border-none ${isPremium ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-800"}`}>
+                  <div className="flex gap-2 mt-3 flex-wrap">
+                    <span
+                      className={`badge border-none ${
+                        isPremium
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
                       {isPremium ? "Premium Member" : "Free Account"}
                     </span>
+
                     {isBlocked && (
                       <span className="badge bg-red-100 text-red-800 border-none">
                         Account Blocked
                       </span>
                     )}
+
                     <span className="badge bg-[#eff0e1] text-[#2d361b] border-none">
                       Role: {profile.role}
                     </span>
@@ -117,13 +144,17 @@ const CitizenProfile = () => {
                         {issuesUsed} / {isPremium ? "∞" : issueLimit} used
                       </span>
                     </div>
+
                     <progress
                       className="progress progress-success w-full h-3"
                       value={isPremium ? 1 : Math.min(issuesUsed, 3)}
                       max={isPremium ? 1 : 3}
                     ></progress>
+
                     <p className="text-sm text-[#2d361b]/60 mt-2">
-                      {isPremium ? "Unlimited submissions enabled." : `Remaining: ${remaining}`}
+                      {isPremium
+                        ? "Unlimited submissions enabled."
+                        : `Remaining: ${remaining}`}
                     </p>
                   </div>
                 </div>
@@ -167,19 +198,23 @@ const CitizenProfile = () => {
           <div className="space-y-8">
             <div className="bg-gradient-to-br from-[#1c260f] to-[#1f2b12] text-[#f4f6e8] rounded-2xl p-6 border border-[#2f3a1a]">
               <h3 className="text-xl font-semibold mb-6">Your Activity</h3>
+
               <div className="space-y-4">
                 <div className="flex justify-between items-center p-3 bg-[#1a220e] rounded-xl">
                   <span>Total Issues</span>
                   <span className="font-bold">{stats.total}</span>
                 </div>
+
                 <div className="flex justify-between items-center p-3 bg-[#1a220e] rounded-xl">
                   <span>Pending Issues</span>
                   <span className="font-bold">{stats.pending}</span>
                 </div>
+
                 <div className="flex justify-between items-center p-3 bg-[#1a220e] rounded-xl">
                   <span>Resolved Issues</span>
                   <span className="font-bold">{stats.resolved}</span>
                 </div>
+
                 <div className="flex justify-between items-center p-3 bg-[#1a220e] rounded-xl">
                   <span>Total Payments</span>
                   <span className="font-bold">0 tk</span>
@@ -189,9 +224,12 @@ const CitizenProfile = () => {
 
             {isBlocked && (
               <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
-                <h4 className="font-bold text-red-800 mb-2">Account Restricted</h4>
+                <h4 className="font-bold text-red-800 mb-2">
+                  Account Restricted
+                </h4>
                 <p className="text-sm text-red-700">
-                  Your account is blocked by admin. You should disable submitting/upvoting/boosting.
+                  Your account is blocked by admin. You should disable
+                  submitting/upvoting/boosting.
                 </p>
               </div>
             )}

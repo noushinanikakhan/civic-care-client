@@ -17,6 +17,7 @@ import CitizenProfile from "../pages/Dashboard/Citizens/CitizenProfile";
 import StaffDashboard from "../pages/Dashboard/staff/StaffDashboard";
 import AdminDashboard from "../pages/Dashboard/Admin/AdminDashboard";
 import IssueDetails from "../pages/IssueDetails/IssueDetails";
+import DashboardRedirect from "../pages/Dashboard/DashboardRedirect";
 
 export const router = createBrowserRouter([
   {
@@ -33,7 +34,7 @@ export const router = createBrowserRouter([
             Component: AllIssues,
         },
       {
-        path: '/issues/:id',
+        path: 'issues/:id',
         element: <PrivateRoute><IssueDetails /></PrivateRoute>,
       },
         {
@@ -64,9 +65,9 @@ export const router = createBrowserRouter([
     path: 'dashboard',
     element: <PrivateRoute><DashboardLayout></DashboardLayout></PrivateRoute>,
     children: [
-       {
-      index: true, // This handles /dashboard
-      element: <Navigate to="citizens" replace />,
+      {
+        index: true,
+        element: <DashboardRedirect />,
       },
       {
         path: 'citizens',

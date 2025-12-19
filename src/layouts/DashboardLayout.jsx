@@ -18,12 +18,13 @@ const DashboardLayout = () => {
             ☰
           </label>
 
-          <div className="flex items-center gap-2">
-            <Logo size={32} />
-            <span className="text-xl font-bold text-[#2d361b]">
-              CivicCare Dashboard
-            </span>
-          </div>
+       <Link to="/dashboard" className="flex items-center gap-2">
+  <Logo size={32} />
+  <span className="text-xl font-bold text-[#2d361b]">
+    CivicCare Dashboard
+  </span>
+</Link>
+
           
           {/* Role Switcher - Static for now */}
           <div className="dropdown dropdown-end">
