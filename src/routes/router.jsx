@@ -18,6 +18,10 @@ import StaffDashboard from "../pages/Dashboard/staff/StaffDashboard";
 import AdminDashboard from "../pages/Dashboard/Admin/AdminDashboard";
 import IssueDetails from "../pages/IssueDetails/IssueDetails";
 import DashboardRedirect from "../pages/Dashboard/DashboardRedirect";
+import AdminRoute from "./AdminRoute";
+import AdminAllIssues from "../pages/Dashboard/Admin/AdminAllIssues";
+import ManageUsers from "../pages/Dashboard/Admin/ManageUsers";
+import AdminProfile from "../pages/Dashboard/Admin/AdminProfile";
 
 export const router = createBrowserRouter([
   {
@@ -96,13 +100,35 @@ export const router = createBrowserRouter([
           Component: StaffDashboard, // /dashboard/staff
         }]
       },
-      {
-        path: 'admin',
-        children: [{
-          index: true,
-          Component: AdminDashboard, // /dashboard/admin
-        }]
-      }
+  {
+  path: "admin",
+  children: [
+    { 
+      index: true, Component: AdminDashboard 
+    },
+    { 
+      path: "all-issues", 
+      Component: AdminAllIssues 
+    },
+    { 
+      path: "manage-users", 
+      Component: ManageUsers 
+    },
+    // { 
+    //   path: "manage-staff", 
+    //   Component: ManageStaff 
+    // },
+    // { 
+    //   path: "payments", 
+    //   Component: AdminPayments 
+    // },
+    { 
+      path: "profile", 
+      Component: AdminProfile
+    },
+  ],
+},
+
     ]
   }
 ]);
