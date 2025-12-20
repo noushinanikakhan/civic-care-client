@@ -17,15 +17,15 @@ const ManageStaff = () => {
   const qc = useQueryClient();
   const { user, loading } = useAuth();
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [mode, setMode] = useState("create"); // create | update
   const [form, setForm] = useState(emptyForm);
 
-  const canQuery = useMemo(() => !!user?.email && !loading, [user?.email, loading]);
+  const enabled = useMemo(() => !!user?.email && !loading, [user?.email, loading]);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-staff"],
-    enabled: canQuery,
+    enabled,
     queryFn: async () => {
       const res = await authFetch(`${API_BASE}/admin/staff`);
       const json = await res.json().catch(() => ({}));
@@ -39,7 +39,7 @@ const ManageStaff = () => {
   const openCreate = () => {
     setMode("create");
     setForm(emptyForm);
-    setIsOpen(true);
+    setOpen(true);
   };
 
   const openUpdate = (s) => {
@@ -49,13 +49,13 @@ const ManageStaff = () => {
       email: s.email || "",
       phone: s.phone || "",
       photoURL: s.photoURL || "",
-      password: "", // not used in update
+      password: s.staffPassword || "", // ✅ show stored password
     });
-    setIsOpen(true);
+    setOpen(true);
   };
 
   const closeModal = () => {
-    setIsOpen(false);
+    setOpen(false);
     setForm(emptyForm);
   };
 
@@ -92,6 +92,7 @@ const ManageStaff = () => {
         name: form.name.trim(),
         phone: form.phone.trim(),
         photoURL: form.photoURL.trim(),
+        password: form.password, // ✅ update password too (Firebase + Mongo)
       };
 
       const res = await authFetch(`${API_BASE}/admin/staff/${encodeURIComponent(form.email)}`, {
@@ -132,7 +133,7 @@ const ManageStaff = () => {
 
     if (mode === "create") {
       if (!form.name || !form.email || !form.password) {
-        Swal.fire({ icon: "warning", title: "Missing fields", text: "Name, Email, Password required." });
+        Swal.fire({ icon: "warning", title: "Missing", text: "Name, Email, Password required." });
         return;
       }
       createMutation.mutate();
@@ -141,7 +142,7 @@ const ManageStaff = () => {
 
     // update
     if (!form.name || !form.email) {
-      Swal.fire({ icon: "warning", title: "Missing fields", text: "Name and Email required." });
+      Swal.fire({ icon: "warning", title: "Missing", text: "Name and Email required." });
       return;
     }
     updateMutation.mutate();
@@ -151,11 +152,12 @@ const ManageStaff = () => {
     const ok = await Swal.fire({
       icon: "warning",
       title: "Delete staff?",
-      text: "This will remove the staff from DB (and Firebase for assignment).",
+      text: "You cannot change after delete.",
       showCancelButton: true,
       confirmButtonColor: "#2d361b",
       confirmButtonText: "Delete",
     });
+
     if (ok.isConfirmed) deleteMutation.mutate(s.email);
   };
 
@@ -181,15 +183,10 @@ const ManageStaff = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-[#2d361b]">Manage Staff</h1>
-            <p className="text-[#2d361b]/70 mt-2">
-              Add staff (Firebase + DB), update info, or delete staff.
-            </p>
+            <p className="text-[#2d361b]/70 mt-2">Add, update, delete staff.</p>
           </div>
 
-          <button
-            className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl"
-            onClick={openCreate}
-          >
+          <button className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl" onClick={openCreate}>
             Add Staff
           </button>
         </div>
@@ -198,9 +195,11 @@ const ManageStaff = () => {
           <table className="table">
             <thead>
               <tr className="text-[#2d361b]">
+                <th>Photo</th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
+                <th>Password</th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
@@ -208,16 +207,28 @@ const ManageStaff = () => {
             <tbody>
               {staff.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-10 text-center text-[#2d361b]/70">
+                  <td colSpan={6} className="py-10 text-center text-[#2d361b]/70">
                     No staff found.
                   </td>
                 </tr>
               ) : (
                 staff.map((s) => (
                   <tr key={s._id || s.email}>
+                    <td>
+                      <div className="avatar">
+                        <div className="w-10 rounded-full ring ring-[#2d361b]/20 ring-offset-2">
+                          <img
+                            src={s.photoURL || "https://i.ibb.co/2dR2x9f/user.png"}
+                            alt="staff"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                      </div>
+                    </td>
                     <td className="font-semibold text-[#2d361b]">{s.name || "Unnamed"}</td>
                     <td>{s.email}</td>
                     <td>{s.phone || "-"}</td>
+                    <td className="text-sm">{s.staffPassword || "-"}</td>
                     <td className="text-right space-x-2">
                       <button
                         className="btn btn-sm btn-outline border-[#2d361b] text-[#2d361b] rounded-xl"
@@ -225,6 +236,7 @@ const ManageStaff = () => {
                       >
                         Update
                       </button>
+
                       <button
                         className="btn btn-sm btn-outline border-red-600 text-red-600 rounded-xl"
                         onClick={() => handleDelete(s)}
@@ -241,7 +253,7 @@ const ManageStaff = () => {
         </div>
 
         {/* Modal */}
-        {isOpen && (
+        {open && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-3">
             <div className="w-full max-w-lg bg-white rounded-2xl p-6 border border-[#2d361b]/10">
               <h2 className="text-xl font-bold text-[#2d361b]">
@@ -260,7 +272,7 @@ const ManageStaff = () => {
                   className="input input-bordered w-full"
                   placeholder="Email"
                   value={form.email}
-                  disabled={mode === "update"}
+                  disabled={mode !== "create"}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                 />
 
@@ -273,20 +285,18 @@ const ManageStaff = () => {
 
                 <input
                   className="input input-bordered w-full"
-                  placeholder="Photo URL (optional)"
+                  placeholder="Photo URL"
                   value={form.photoURL}
                   onChange={(e) => setForm((p) => ({ ...p, photoURL: e.target.value }))}
                 />
 
-                {mode === "create" && (
-                  <input
-                    className="input input-bordered w-full"
-                    placeholder="Password"
-                    type="password"
-                    value={form.password}
-                    onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                  />
-                )}
+                <input
+                  className="input input-bordered w-full"
+                  placeholder="Password"
+                  type="text"
+                  value={form.password}
+                  onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                />
 
                 <div className="flex justify-end gap-2 pt-2">
                   <button type="button" className="btn btn-ghost" onClick={closeModal}>
@@ -302,9 +312,7 @@ const ManageStaff = () => {
                 </div>
               </form>
 
-              <p className="text-xs text-[#2d361b]/60 mt-3">
-                Note: Admin-created passwords are for assignment simplicity, not real-world best practice.
-              </p>
+            
             </div>
           </div>
         )}

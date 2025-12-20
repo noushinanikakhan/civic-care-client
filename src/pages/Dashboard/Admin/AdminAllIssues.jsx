@@ -219,21 +219,28 @@ const AdminAllIssues = () => {
                         )}
                       </td>
                       <td className="text-right space-x-2">
-                        <button
-                          className="btn btn-sm bg-[#d6d37c] text-[#2d361b] rounded-xl"
-                          disabled={hasStaff}
-                          onClick={() => openAssignModal(issue)}
-                        >
-                          Assign Staff
-                        </button>
+                <button
+  className={`btn btn-sm rounded-xl ${
+    hasStaff
+      ? "btn-disabled opacity-70 cursor-not-allowed"
+      : "bg-[#d6d37c] text-[#2d361b]"
+  }`}
+  disabled={hasStaff}
+  onClick={() => !hasStaff && openAssignModal(issue)}
+>
+  {hasStaff ? "Assigned" : "Assign Staff"}
+</button>
 
-                        <button
-                          className="btn btn-sm btn-outline border-[#2d361b] text-[#2d361b] rounded-xl"
-                          disabled={status !== "pending"}
-                          onClick={() => handleReject(issue)}
-                        >
-                          Reject
-                        </button>
+
+            {!hasStaff && (
+  <button
+    className="btn btn-sm btn-error rounded-xl"
+    onClick={() => handleDelete(issue._id)}
+  >
+    Reject
+  </button>
+)}
+
                       </td>
                     </tr>
                   );

@@ -23,6 +23,8 @@ import AdminAllIssues from "../pages/Dashboard/Admin/AdminAllIssues";
 import ManageUsers from "../pages/Dashboard/Admin/ManageUsers";
 import AdminProfile from "../pages/Dashboard/Admin/AdminProfile";
 import ManageStaff from "../pages/Dashboard/Admin/ManageStaff";
+import StaffAssignedIssues from "../pages/Dashboard/staff/StaffAssignedIssues";
+import StaffProfile from "../pages/Dashboard/staff/StaffProfile";
 
 export const router = createBrowserRouter([
   {
@@ -99,7 +101,17 @@ export const router = createBrowserRouter([
         children: [{
           index: true,
           Component: StaffDashboard, // /dashboard/staff
-        }]
+        },
+          {
+            path: 'assigned-issues',
+            Component: StaffAssignedIssues,
+          },
+          {
+            path: 'profile',
+            Component: StaffProfile,
+          }
+        
+      ]
       },
   {
   path: "admin",
