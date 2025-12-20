@@ -22,6 +22,7 @@ import AdminRoute from "./AdminRoute";
 import AdminAllIssues from "../pages/Dashboard/Admin/AdminAllIssues";
 import ManageUsers from "../pages/Dashboard/Admin/ManageUsers";
 import AdminProfile from "../pages/Dashboard/Admin/AdminProfile";
+import ManageStaff from "../pages/Dashboard/Admin/ManageStaff";
 
 export const router = createBrowserRouter([
   {
@@ -114,10 +115,10 @@ export const router = createBrowserRouter([
       path: "manage-users", 
       Component: ManageUsers 
     },
-    // { 
-    //   path: "manage-staff", 
-    //   Component: ManageStaff 
-    // },
+    { 
+      path: "manage-staff", 
+      Component: ManageStaff 
+    },
     // { 
     //   path: "payments", 
     //   Component: AdminPayments 

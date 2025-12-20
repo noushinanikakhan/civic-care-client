@@ -3,12 +3,15 @@ import Swal from "sweetalert2";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE } from "../../../utils/api";
 import { authFetch } from "../../../utils/authFetch";
+import useAuth from "../../../hooks/useAuth";
 
 const ManageUsers = () => {
   const qc = useQueryClient();
+  const { user, loading } = useAuth();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["admin-users"],
+    enabled: !!user?.email && !loading,
     queryFn: async () => {
       const res = await authFetch(`${API_BASE}/users`);
       const json = await res.json().catch(() => ({}));
@@ -48,10 +51,18 @@ const ManageUsers = () => {
     if (ok.isConfirmed) toggleMutation.mutate(u.email);
   };
 
-  if (isLoading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#eff0e1]">
         <span className="loading loading-infinity loading-xl"></span>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="bg-[#eff0e1] min-h-screen flex items-center justify-center">
+        <p className="text-[#2d361b] font-semibold">{error.message}</p>
       </div>
     );
   }
@@ -61,7 +72,7 @@ const ManageUsers = () => {
       <div className="w-11/12 mx-auto space-y-5">
         <div>
           <h1 className="text-3xl font-bold text-[#2d361b]">Manage Users</h1>
-          <p className="text-[#2d361b]/70 mt-2">Only citizen users are shown here.</p>
+          <p className="text-[#2d361b]/70 mt-2">All citizen users are shown here.</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-[#2d361b]/10 overflow-x-auto">
@@ -71,6 +82,7 @@ const ManageUsers = () => {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Subscription</th>
+                <th>Issues</th>
                 <th>Status</th>
                 <th className="text-right">Action</th>
               </tr>
@@ -78,7 +90,7 @@ const ManageUsers = () => {
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-[#2d361b]/70">
+                  <td colSpan={6} className="py-10 text-center text-[#2d361b]/70">
                     No citizen users found.
                   </td>
                 </tr>
@@ -88,10 +100,11 @@ const ManageUsers = () => {
                     <td className="font-semibold text-[#2d361b]">{u.name || "Unnamed"}</td>
                     <td>{u.email}</td>
                     <td>
-                      <span className="badge badge-ghost">
+                      <span className={`badge ${u.isPremium ? "badge-warning" : "badge-ghost"}`}>
                         {u.isPremium ? "Premium" : "Free"}
                       </span>
                     </td>
+                    <td>{u.issueCount || 0}</td>
                     <td>
                       <span className={`badge ${u.isBlocked ? "badge-error" : "badge-success"}`}>
                         {u.isBlocked ? "Blocked" : "Active"}
@@ -101,6 +114,7 @@ const ManageUsers = () => {
                       <button
                         className="btn btn-sm btn-outline border-[#2d361b] text-[#2d361b] rounded-xl"
                         onClick={() => handleToggle(u)}
+                        disabled={toggleMutation.isPending}
                       >
                         {u.isBlocked ? "Unblock" : "Block"}
                       </button>
