@@ -6,13 +6,15 @@ import { API_BASE } from "../../../utils/api";
 import { authFetch } from "../../../utils/authFetch";
 
 const CitizenProfile = () => {
-  const { user } = useAuth();
+const { user, loading } = useAuth();
   const [editMode, setEditMode] = useState(false);
 
   
 
   const profileQuery = useQuery({
     queryKey: ["user-profile", user?.email],
+      enabled: !!user?.email && !loading,   // ✅ PASTE HERE
+
     enabled: !!user?.email,
     queryFn: async () => {
      const res = await authFetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`);

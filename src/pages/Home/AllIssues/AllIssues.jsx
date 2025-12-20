@@ -3,8 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import Swal from "sweetalert2";
 import { AuthContext } from "../../../context/AuthContext/AuthContext";
+import { authFetch } from "../../../utils/authFetch";
+import { API_BASE } from "../../../utils/api";
 
-const API_BASE = "http://localhost:3000";
+
+// const API_BASE = "http://localhost:3000";
 
 const AllIssues = () => {
   const { user } = useContext(AuthContext);
@@ -51,35 +54,35 @@ const AllIssues = () => {
     setSearch(searchInput.trim());
   };
 
-  const handleUpvote = async (issue) => {
-    if (!user?.email) {
-      Swal.fire({
-        icon: "info",
-        title: "Login Required",
-        text: "Please login to upvote an issue.",
-        confirmButtonColor: "#2d361b",
-      }).then(() => navigate("/login", { state: location.pathname }));
-      return;
-    }
+const handleUpvote = async (issue) => {
+  if (!user?.email) {
+    Swal.fire({
+      icon: "info",
+      title: "Login Required",
+      text: "Please login to upvote an issue.",
+      confirmButtonColor: "#2d361b",
+    }).then(() => navigate("/login", { state: location.pathname }));
+    return;
+  }
 
-    const ownerEmail = issue.userEmail || issue.reportedBy;
-    if (ownerEmail === user.email) {
-      Swal.fire({
-        icon: "warning",
-        title: "Not Allowed",
-        text: "You cannot upvote your own issue.",
-        confirmButtonColor: "#2d361b",
-      });
-      return;
-    }
+  const ownerEmail = issue.userEmail || issue.reportedBy || issue?.reportedBy?.email;
+  if (ownerEmail === user.email) {
+    Swal.fire({
+      icon: "warning",
+      title: "Not Allowed",
+      text: "You cannot upvote your own issue.",
+      confirmButtonColor: "#2d361b",
+    });
+    return;
+  }
 
-    const res = await fetch(`${API_BASE}/issues/${issue._id}/upvote`, {
+  try {
+    // ✅ IMPORTANT: use authFetch so token is attached
+    const res = await authFetch(`${API_BASE}/issues/${issue._id}/upvote`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userEmail: user.email }),
     });
 
-    const result = await res.json();
+  const result = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       Swal.fire({
@@ -99,7 +102,16 @@ const AllIssues = () => {
     });
 
     refetch();
-  };
+  } catch (e) {
+    Swal.fire({
+      icon: "error",
+      title: "Upvote Failed",
+      text: e?.message || "Request failed",
+      confirmButtonColor: "#2d361b",
+    });
+  }
+};
+
 
   if (isLoading) {
     return (
@@ -134,11 +146,11 @@ const AllIssues = () => {
             onChange={(e) => setCategory(e.target.value)}
           >
             <option value="all">All Categories</option>
-            <option value="Road">Road Damage & Potholes</option>
-            <option value="Water">Water Leakage</option>
-            <option value="Electricity">Streetlight Issues</option>
-            <option value="Garbage">Garbage & Sanitation</option>
-            <option value="Other">Other</option>
+  <option value="Streetlight Issues">Streetlight Issues</option>
+  <option value="Road Damage & Potholes">Road Damage & Potholes</option>
+  <option value="Water Leakage">Water Leakage</option>
+  <option value="Garbage & Sanitation">Garbage & Sanitation</option>
+  <option value="Other">Other</option>
           </select>
 
           <select

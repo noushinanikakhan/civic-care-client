@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Swal from "sweetalert2";
 import useAuth from "../../../hooks/useAuth";
 import { API_BASE } from "../../../utils/api";
+import { authFetch } from "../../../utils/authFetch";
 
 const MyIssues = () => {
   const { user } = useAuth();
@@ -12,28 +13,23 @@ const MyIssues = () => {
   const modalRef = useRef(null);
   const [selectedIssue, setSelectedIssue] = useState(null);
 
-  // ✅ CHANGED: remove URL-based image field usage in UI; keep image as string in payload
   const [editForm, setEditForm] = useState({
     title: "",
     category: "",
     priority: "normal",
     location: "",
     description: "",
-    image: "", // will be final URL saved in DB
+    image: "", // can be base64 string or empty
   });
 
-  // ✅ ADDED: file upload state for modal
-  const [newImageFile, setNewImageFile] = useState(null);
-  const [newImagePreview, setNewImagePreview] = useState(null);
+  const [newImagePreview, setNewImagePreview] = useState(null); // base64 preview
 
-  // ✅ fetch my issues
+  // ✅ IMPORTANT: use secured endpoint (your backend already has /my-issues)
   const { data, isLoading, isError } = useQuery({
     queryKey: ["my-issues", user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
-      const res = await fetch(
-        `${API_BASE}/issues?reportedBy=${encodeURIComponent(user.email)}&page=1&limit=50`
-      );
+      const res = await authFetch(`${API_BASE}/my-issues?page=1&limit=50`);
       if (!res.ok) throw new Error("Failed to load issues");
       return res.json();
     },
@@ -63,10 +59,10 @@ const MyIssues = () => {
       ? "badge-error text-white"
       : "badge-outline text-[#2d361b]";
 
-  // ✅ Delete mutation (unchanged)
+  // ✅ Delete (also should be secured, but keep your pattern; if you have delete route secured later, switch to authFetch)
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      const res = await fetch(`${API_BASE}/issues/${id}`, { method: "DELETE" });
+      const res = await authFetch(`${API_BASE}/issues/${id}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Delete failed");
       return data;
@@ -91,64 +87,23 @@ const MyIssues = () => {
     },
   });
 
-  // ✅ CHANGED: helper to upload image file to imgbb (prevents 413)
-  const uploadToImgbb = async (file) => {
-    const key = import.meta.env.VITE_image_host_key; // ✅ you already used this pattern before
-    if (!key) throw new Error("Missing VITE_image_host_key in client .env");
-
-    const formData = new FormData();
-    formData.append("image", file);
-
-    const url = `https://api.imgbb.com/1/upload?key=${key}`;
-    const res = await fetch(url, {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-    if (!res.ok || !data?.success) {
-      throw new Error("Image upload failed");
-    }
-
-    return data.data.display_url; // final hosted image URL
-  };
-
-  // ✅ Edit mutation: PATCH /issues/:id
+  // ✅ Edit mutation: MUST send token
   const editMutation = useMutation({
     mutationFn: async ({ id, payload }) => {
-      const res = await fetch(`${API_BASE}/issues/${id}`, {
+      const res = await authFetch(`${API_BASE}/issues/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Update failed");
-      return data; // { success: true, issue: updatedIssue }
+      return data;
     },
-
-    onSuccess: async (data) => {
-      const updated = data?.issue;
-
-      // 1) update my-issues cache instantly
-      queryClient.setQueryData(["my-issues", user?.email], (old) => {
-        if (!old?.issues || !updated?._id) return old;
-        const newIssues = old.issues.map((it) => (it._id === updated._id ? updated : it));
-        return { ...old, issues: newIssues };
-      });
-
-      // 2) update public issues cache
-      queryClient.setQueriesData({ queryKey: ["issues"] }, (old) => {
-        if (!old?.issues || !updated?._id) return old;
-        const newIssues = old.issues.map((it) => (it._id === updated._id ? updated : it));
-        return { ...old, issues: newIssues };
-      });
-
-      // 3) close modal
+    onSuccess: async () => {
       modalRef.current?.close();
-
-      // ✅ reset file state after success
-      setNewImageFile(null);
       setNewImagePreview(null);
+
+      await queryClient.invalidateQueries({ queryKey: ["my-issues", user?.email] });
+      await queryClient.invalidateQueries({ queryKey: ["citizen-stats", user?.email] });
 
       Swal.fire({
         icon: "success",
@@ -156,10 +111,7 @@ const MyIssues = () => {
         text: "Issue updated successfully.",
         confirmButtonColor: "#2d361b",
       });
-
-      await queryClient.invalidateQueries({ queryKey: ["citizen-stats", user?.email] });
     },
-
     onError: (err) => {
       Swal.fire({
         icon: "error",
@@ -170,23 +122,17 @@ const MyIssues = () => {
     },
   });
 
-  // ✅ open modal with prefilled data
   const openEditModal = (issue) => {
     setSelectedIssue(issue);
-
     setEditForm({
       title: issue.title || "",
       category: issue.category || "",
       priority: issue.priority || "normal",
       location: issue.location || "",
       description: issue.description || "",
-      image: issue.image || "", // existing URL
+      image: issue.image || "",
     });
-
-    // ✅ reset file on open
-    setNewImageFile(null);
     setNewImagePreview(null);
-
     modalRef.current?.showModal();
   };
 
@@ -195,12 +141,12 @@ const MyIssues = () => {
     setEditForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ ADDED: file picker handler
+  // ✅ PC image -> base64 (DataURL)
   const onPickImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // optional: simple size guard (prevents huge uploads)
+    // ✅ keep it small (your server limit is 10mb; base64 grows ~33%)
     if (file.size > 2 * 1024 * 1024) {
       Swal.fire({
         icon: "info",
@@ -211,11 +157,16 @@ const MyIssues = () => {
       return;
     }
 
-    setNewImageFile(file);
-    setNewImagePreview(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result; // data:image/...;base64,...
+      setNewImagePreview(base64);
+      setEditForm((prev) => ({ ...prev, image: base64 })); // ✅ store in payload
+    };
+    reader.readAsDataURL(file);
   };
 
-  const submitEdit = async (e) => {
+  const submitEdit = (e) => {
     e.preventDefault();
     if (!selectedIssue?._id) return;
 
@@ -229,40 +180,16 @@ const MyIssues = () => {
       return;
     }
 
-    try {
-      // ✅ CHANGED: if user selected a new file, upload it and use URL
-      let finalImageUrl = editForm.image;
+    const payload = {
+      title: editForm.title.trim(),
+      category: editForm.category,
+      priority: editForm.priority,
+      location: editForm.location.trim(),
+      description: editForm.description.trim(),
+      image: editForm.image, // ✅ base64 or existing
+    };
 
-      if (newImageFile) {
-        Swal.fire({
-          title: "Uploading image...",
-          text: "Please wait",
-          allowOutsideClick: false,
-          didOpen: () => Swal.showLoading(),
-        });
-
-        finalImageUrl = await uploadToImgbb(newImageFile);
-        Swal.close();
-      }
-
-      const payload = {
-        title: editForm.title.trim(),
-        category: editForm.category,
-        priority: editForm.priority,
-        location: editForm.location.trim(),
-        description: editForm.description.trim(),
-        image: finalImageUrl, // ✅ always a URL (no 413)
-      };
-
-      editMutation.mutate({ id: selectedIssue._id, payload });
-    } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Image upload failed",
-        text: err.message,
-        confirmButtonColor: "#2d361b",
-      });
-    }
+    editMutation.mutate({ id: selectedIssue._id, payload });
   };
 
   if (isLoading) {
@@ -332,6 +259,10 @@ const MyIssues = () => {
                       <div>
                         <p className="font-medium text-[#2d361b]">{issue.title}</p>
                         <p className="text-sm text-[#2d361b]/70">{issue.location}</p>
+
+    {/* 🔍 TEMP DEBUG — remove later */}
+                        <p className="text-xs text-gray-500">Owner: {issue?.reportedBy?.email || issue?.reportedBy}</p>
+
                       </div>
                     </td>
                     <td className="text-[#2d361b]">{issue.category}</td>
@@ -341,7 +272,7 @@ const MyIssues = () => {
                     <td>
                       <span className={`badge ${getPriorityColor(issue.priority)}`}>{issue.priority}</span>
                     </td>
-                    <td className="text-[#2d361b]">{issue.upvoteCount || 0}</td>
+                    <td className="text-[#2d361b]">{issue.upvotes || 0}</td>
                     <td>
                       <div className="flex gap-2 flex-wrap">
                         <Link
@@ -398,13 +329,10 @@ const MyIssues = () => {
           </div>
         </div>
 
-        {/* ✅ EDIT MODAL */}
+        {/* EDIT MODAL */}
         <dialog ref={modalRef} className="modal">
           <div className="modal-box bg-white">
             <h3 className="font-bold text-xl text-[#2d361b]">Edit Issue</h3>
-            <p className="text-sm text-[#2d361b]/70 mt-1">
-              Update issue information and submit to save changes.
-            </p>
 
             <form onSubmit={submitEdit} className="mt-6 space-y-4">
               <div>
@@ -470,7 +398,7 @@ const MyIssues = () => {
                 />
               </div>
 
-              {/* ✅ CHANGED: remove Image URL input, use file upload */}
+              {/* PC image */}
               <div>
                 <label className="label">
                   <span className="label-text text-[#2d361b] font-semibold">Update Image</span>
@@ -498,10 +426,6 @@ const MyIssues = () => {
                     />
                   ) : null}
                 </div>
-
-                {/* <p className="text-xs text-[#2d361b]/60 mt-1">
-                  (This uploads to imgbb and saves the URL, so you won’t get 413.)
-                </p> */}
               </div>
 
               <div>

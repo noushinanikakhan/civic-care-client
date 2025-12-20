@@ -14,6 +14,9 @@ import {
   FaCheckCircle,
 } from "react-icons/fa";
 import useAuth from "../../hooks/useAuth";
+import { authFetch } from "../../utils/authFetch";
+import { API_BASE } from "../../utils/api";
+
 
 const IssueDetails = () => {
   const { id } = useParams();
@@ -40,13 +43,11 @@ const IssueDetails = () => {
   const assignedStaff = issue?.assignedStaff;
 
   // ✅ FIXED: Upvote mutation - use PATCH method (not POST)
-  const upvoteMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`http://localhost:3000/issues/${id}/upvote`, {
-        method: "PATCH", // ✅ BACKEND EXPECTS PATCH
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userEmail: user?.email }), // ✅ userEmail (not email)
-      });
+const upvoteMutation = useMutation({
+  mutationFn: async () => {
+    const res = await authFetch(`${API_BASE}/issues/${id}/upvote`, {
+      method: "PATCH",
+    });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Failed to upvote");
