@@ -50,8 +50,13 @@ const displayName =
   user?.email?.split("@")[0] ||
   "Citizen";
 
-const displayPhoto = profileData?.photoURL;
+const displayPhoto =
+  profileData?.photoURL ||
+  user?.photoURL ||   // fallback only, never primary
+  null;
 
+
+  
 
 
   const links = <>
@@ -59,9 +64,13 @@ const displayPhoto = profileData?.photoURL;
        <li> <NavLink to='all-issues'> All Issues</NavLink></li>
       <li><NavLink to='/help-guidlines'>Help & Guidelines</NavLink></li>
             <li><NavLink to='/about'>About</NavLink></li>
-
-
   </>
+
+    // ✅ PUT THIS HERE (right before JSX return)
+  if (user && (loading || profileLoading)) {
+    return <div className="navbar bg-[#eff0e1] h-16"></div>;
+  }
+
     return (
 <div className="navbar bg-[#eff0e1] sticky top-0 z-50">
   <div className="navbar-start">

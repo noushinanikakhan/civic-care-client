@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
-
-// 👉 Replace these with your real images (or pass via props)
 import heroImg from "../../../assets/banner.jpg"; // put your image path
+import { Link } from "react-router";
 
 const Banner = () => {
+
   useEffect(() => {
     AOS.init({
       duration: 900,
@@ -57,14 +57,14 @@ const Banner = () => {
               className="mt-7 flex flex-col sm:flex-row gap-3"
             >
               {/* Later: link this to Report Issue (or login if not logged in) */}
-              <button className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl border-none">
-                Report an Issue
-              </button>
+         <button className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl border-none text-xs sm:text-sm md:text-base">
+  Cities work best when citizens speak up and systems listen.
+</button>
 
-              {/* Later: link this to /all-issues */}
-              <button className="btn btn-outline rounded-2xl border-[#2d361b] text-[#2d361b] hover:bg-[#2d361b] hover:text-[#d6d37c]">
-                Browse All Issues
-              </button>
+
+            <Link to='/all-issues' className="btn btn-outline rounded-2xl border-2 border-[#2d361b] text-[#2d361b] hover:bg-[#2d361b] hover:text-[#d6d37c]">
+                Browse All Issues           
+            </Link>
             </div>
 
             {/* Highlights */}

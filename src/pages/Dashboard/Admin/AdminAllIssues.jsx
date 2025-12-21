@@ -190,9 +190,10 @@ const AdminAllIssues = () => {
                 </tr>
               ) : (
                 issues.map((issue) => {
-                 const status = (issue.status || "pending").toLowerCase();
-  const isPending = status === "pending";
-  const hasStaff = !!issue.assignedStaff; // keep your existing logic
+    const hasStaff = !!issue.assignedTo?.email;
+  const status = (issue.status || "pending").toLowerCase();
+const isPending = status === "pending";
+const isRejected = status === "rejected";                
                   return (
                     <tr key={issue._id}>
                       <td className="font-semibold text-[#2d361b]">{issue.title}</td>
@@ -218,31 +219,42 @@ const AdminAllIssues = () => {
                           <span className="text-[#2d361b]/60">Not assigned</span>
                         )}
                       </td>
-                      <td className="text-right space-x-2">
- {!hasStaff && isPending && (
-  <button
-    className="btn btn-sm bg-[#2d361b] text-[#d6d37c] rounded-xl"
-    onClick={() => handleAssign(issue)}
-    disabled={assignMutation?.isPending}
-  >
-    Assign Staff
-  </button>
-)}
+     <td className="text-right space-x-2">
+  {/* ✅ If rejected → hide both buttons */}
+  {!isRejected && (
+    <>
+      {/* ✅ Assign button always visible (until rejected) 
+          - clickable only when pending + not assigned
+          - disabled when assigned or not pending */}
+      <button
+        className="btn btn-sm bg-[#2d361b] text-[#d6d37c] rounded-xl"
+        onClick={() => openAssignModal(issue)}
+        disabled={!isPending || hasStaff || assignMutation?.isPending}
+        title={
+          !isPending
+            ? "Only pending issues can be assigned"
+            : hasStaff
+            ? "Already assigned"
+            : ""
+        }
+      >
+        Assign Staff
+      </button>
 
+      {/* ✅ Reject button only when pending + not assigned */}
+      {isPending && !hasStaff && (
+        <button
+          className="btn btn-sm btn-error rounded-xl"
+          onClick={() => handleReject(issue)}
+          disabled={rejectMutation.isPending}
+        >
+          Reject
+        </button>
+      )}
+    </>
+  )}
+</td>
 
-
-{isPending && (
-  <button
-    className="btn btn-sm btn-error rounded-xl"
-    onClick={() => handleReject(issue)}
-    disabled={rejectMutation.isPending}
-  >
-    Reject
-  </button>
-)}
-
-
-                      </td>
                     </tr>
                   );
                 })
