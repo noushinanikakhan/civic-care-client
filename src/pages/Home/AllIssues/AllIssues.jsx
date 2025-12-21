@@ -15,7 +15,7 @@ const AllIssues = () => {
   const location = useLocation();
 
   const [page, setPage] = useState(1);
-  const limit = 9;
+  const limit = 12;
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");

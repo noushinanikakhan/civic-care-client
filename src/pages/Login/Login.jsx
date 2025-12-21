@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import Swal from "sweetalert2";
 import useAuth from "../../hooks/useAuth";
+import { API_BASE } from "../../utils/api";
+import { authFetch } from "../../utils/authFetch";
+import { auth } from "../../firebase/firebase.init";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -34,7 +38,31 @@ const Login = () => {
       setLoading(true);
 
       // ✅ connect your auth
-      await loginUser(email, password);
+await loginUser(email, password);
+
+// sync Mongo user (email/password → no photo required)
+await authFetch(`${API_BASE}/users`, {
+  method: "POST",
+  body: JSON.stringify({
+    email,
+    name: email.split("@")[0],
+    photoURL: "",
+  }),
+});
+
+// 🔥 force Navbar to refetch Mongo profile
+await qc.invalidateQueries({ queryKey: ["user-profile", email] });
+
+Swal.fire({
+  icon: "success",
+  title: "Login successful",
+  text: "Welcome back to CivicCare.",
+  confirmButtonColor: "#2d361b",
+});
+
+navigate(from, { replace: true });
+
+
 
       Swal.fire({
         icon: "success",
@@ -56,19 +84,27 @@ const Login = () => {
     }
   };
 
+  const qc = useQueryClient();
+  
+
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
 
       // ✅ connect your auth
-      await googleSignIn();
+ const u = auth.currentUser;
 
-      Swal.fire({
-        icon: "success",
-        title: "Signed in with Google",
-        text: "You are now logged in.",
-        confirmButtonColor: "#2d361b",
-      });
+await authFetch(`${API_BASE}/users`, {
+  method: "POST",
+  body: JSON.stringify({
+    email: u.email,
+    name: u.displayName || u.email.split("@")[0],
+    photoURL: u.photoURL || "",
+  }),
+});
+
+await qc.invalidateQueries({ queryKey: ["user-profile", u.email] });
+
 
       navigate(from, { replace: true });
     } catch (err) {

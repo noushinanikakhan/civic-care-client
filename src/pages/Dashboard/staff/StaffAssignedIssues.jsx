@@ -6,10 +6,8 @@ import { authFetch } from "../../../utils/authFetch";
 
 const STATUS_FLOW = {
   pending: ["in-progress"],
-  "in-progress": ["working"],
-  working: ["resolved"],
-  resolved: ["closed"],
-  closed: [],
+  "in-progress": ["resolved"],
+  resolved: [],
 };
 
 const StaffAssignedIssues = () => {
@@ -238,11 +236,12 @@ const StaffAssignedIssues = () => {
                             <option value="" disabled>
                               Select...
                             </option>
-                            {nextOptions.map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
+                   {nextOptions.map((s) => (
+  <option key={s} value={s}>
+    {s === "in-progress" ? "Working" : "Resolved"}
+  </option>
+))}
+
                           </select>
                         )}
                       </td>

@@ -2,11 +2,31 @@ import React from "react";
 // import logo from "../../../../assets/rsz_logociviccare111.png"
 import Logo from "../../../../components/Logo/Logo";
 import { NavLink } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import useAuth from "../../../../hooks/useAuth";
+import { API_BASE } from "../../../../utils/api";
+import { authFetch } from "../../../../utils/authFetch";
 
 const Navbar = () => {
 
-  const { user, logoutUser } = useAuth();
+  const { user, logoutUser, loading } = useAuth();
+
+  const {
+  data: profileData,
+  isLoading: profileLoading,
+} = useQuery({
+  queryKey: ["user-profile", user?.email],
+  enabled: !!user?.email && !loading,   // 🔑 THIS IS THE FIX
+  queryFn: async () => {
+    const res = await authFetch(
+      `${API_BASE}/users/profile/${encodeURIComponent(user.email)}`
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error("Failed to load profile");
+    return json.user || json;
+  },
+});
+
 
     // ADD THESE CONSOLE LOGS:
   console.log("Navbar - user object:", user);
@@ -16,6 +36,22 @@ const Navbar = () => {
   const handleLogout = async () => {
   await logoutUser();
 };
+
+const getInitials = (nameOrEmail = "") => {
+  if (!nameOrEmail) return "U";
+  const parts = nameOrEmail.trim().split(" ");
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+};
+
+const displayName =
+  profileData?.name ||
+  user?.displayName ||
+  user?.email?.split("@")[0] ||
+  "Citizen";
+
+const displayPhoto = profileData?.photoURL;
+
 
 
   const links = <>
@@ -56,12 +92,19 @@ const Navbar = () => {
     <div className="dropdown dropdown-end">
       <label tabIndex={0} className="btn btn-ghost btn-circle avatar">
         <div className="w-10 rounded-full border border-[#2d361b]/30 bg-[#2d361b]/10">
-          <img
-            src={user?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${user?.email}&backgroundColor=2d361b&fontColor=d6d37c`}
-            alt="Profile"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover"
-          />
+      {displayPhoto ? (
+  <img
+    src={displayPhoto}
+    alt={displayName}
+    className="w-full h-full object-cover"
+    referrerPolicy="no-referrer"
+  />
+) : (
+  <div className="w-full h-full flex items-center justify-center bg-[#2d361b] text-[#d6d37c] font-bold text-sm">
+    {getInitials(displayName)}
+  </div>
+)}
+
         </div>
       </label>
 
@@ -73,7 +116,7 @@ const Navbar = () => {
         <li className="px-3 py-3 cursor-default border-b border-[#2d361b]/10">
           <div>
             <p className="text-[#2d361b] font-bold text-sm">
-              {user?.displayName || user?.email?.split('@')[0] || "Citizen"}
+                 {displayName}
             </p>
             <p className="text-xs text-[#2d361b]/70 mt-1 truncate">{user?.email}</p>
           </div>

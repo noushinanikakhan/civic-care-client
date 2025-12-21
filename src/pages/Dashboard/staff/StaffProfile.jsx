@@ -10,7 +10,7 @@ const StaffProfile = () => {
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["staff-profile", user?.email],
+    queryKey: ["user-profile", user?.email],
     enabled: !!user?.email && !loading,
     queryFn: async () => {
       const res = await authFetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`);
@@ -41,7 +41,7 @@ const StaffProfile = () => {
       return json;
     },
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["staff-profile", user?.email] });
+      await qc.invalidateQueries({ queryKey: ["user-profile", user?.email] });
       Swal.fire({ icon: "success", title: "Profile updated!", timer: 1000, showConfirmButton: false });
     },
     onError: (err) => Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#2d361b" }),

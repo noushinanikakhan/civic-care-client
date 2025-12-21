@@ -80,10 +80,11 @@ const CitizenProfile = () => {
   // -----------------------------
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
-      const res = await authFetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`, {
-        method: "PATCH",
-        body: JSON.stringify({ name, photoURL }),
-      });
+     const res = await authFetch(`${API_BASE}/users/profile`, {
+  method: "PATCH",
+  body: JSON.stringify({ name, photoURL }),
+});
+
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.message || "Failed to update profile");
       return json;
@@ -234,10 +235,8 @@ const CitizenProfile = () => {
             <div className="flex items-center gap-4">
               <div className="avatar">
                 <div className="w-20 rounded-2xl ring ring-[#2d361b]/20 ring-offset-base-100 ring-offset-2">
-                  <img
-                    src={photoURL || "https://i.ibb.co/2P9QmWJ/default-avatar.png"}
-                    alt="Profile"
-                  />
+                  <img src={displayPhoto || null} alt="Profile" />
+
                 </div>
               </div>
 

@@ -10,7 +10,7 @@ const AdminProfile = () => {
   const qc = useQueryClient();
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["my-profile", user?.email],
+    queryKey: ["user-profile", user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
       const res = await authFetch(
@@ -49,7 +49,7 @@ const AdminProfile = () => {
       return json;
     },
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["my-profile", user?.email] });
+      await qc.invalidateQueries({ queryKey: ["user-profile",, user?.email] });
       Swal.fire({
         icon: "success",
         title: "Profile updated",

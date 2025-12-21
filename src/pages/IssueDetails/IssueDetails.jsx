@@ -323,12 +323,12 @@ const upvoteMutation = useMutation({
               <div className="flex flex-wrap gap-4">
                 {canEditDelete && (
                   <>
-                    <Link
-                      to={`/dashboard/citizens/edit-issue/${id}`}
-                      className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl border-none flex items-center gap-2"
-                    >
-                      <FaEdit /> Edit Issue
-                    </Link>
+                <button
+  onClick={() => navigate("/dashboard/citizens/my-issues")}
+  className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl border-none flex items-center gap-2"
+>
+  Edit Issue
+</button>
                     <button
                       onClick={handleDelete}
                       disabled={deleteMutation.isPending}
