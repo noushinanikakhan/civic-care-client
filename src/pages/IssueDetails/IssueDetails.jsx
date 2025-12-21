@@ -40,7 +40,19 @@ const IssueDetails = () => {
   // ✅ FIXED: Extract issue from response
   const issue = response?.issue || {};
   const timeline = issue?.timeline || [];
-  const assignedStaff = issue?.assignedStaff;
+  // ✅ Support multiple backend field names + avoid empty object truthy issue
+const assignedStaffRaw =
+  issue?.assignedStaff ||
+  issue?.assignedTo ||
+  issue?.staff ||
+  issue?.assignedStaffInfo ||
+  null;
+
+const assignedStaff =
+  assignedStaffRaw &&
+  (assignedStaffRaw.name || assignedStaffRaw.email || assignedStaffRaw.photo)
+    ? assignedStaffRaw
+    : null;
 
   // ✅ FIXED: Upvote mutation - use PATCH method (not POST)
 const upvoteMutation = useMutation({
@@ -375,11 +387,11 @@ const upvoteMutation = useMutation({
               <div className="bg-white rounded-2xl p-6 border border-[#2d361b]/10">
                 <h2 className="text-xl font-bold text-[#2d361b] mb-4">Assigned Staff</h2>
                 <div className="flex items-center gap-4">
-                  <img
+                  {/* <img
                     src={assignedStaff.photo}
                     alt={assignedStaff.name}
                     className="w-16 h-16 rounded-full object-cover border-2 border-[#2d361b]/20"
-                  />
+                  /> */}
                   <div>
                     <h3 className="font-bold text-[#2d361b]">{assignedStaff.name}</h3>
                     <p className="text-sm text-[#2d361b]/70">{assignedStaff.department}</p>
