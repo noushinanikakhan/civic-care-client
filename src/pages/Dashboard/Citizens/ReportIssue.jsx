@@ -4,9 +4,10 @@ import Swal from "sweetalert2";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import useAuth from "../../../hooks/useAuth";
 import { API_BASE } from "../../../utils/api";
+import { authFetch } from "../../../utils/authFetch";
 
 const ReportIssue = () => {
-  const { user } = useAuth();
+ const { user, loading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -17,17 +18,18 @@ const ReportIssue = () => {
     priority: "normal",
     location: "",
     description: "",
-    image: "", // ✅ keep as URL or small base64 (better: URL)
+    image: "", 
   });
 
   // ✅ Get user profile from MongoDB (isPremium / isBlocked / role)
   const profileQuery = useQuery({
     queryKey: ["user-profile", user?.email],
-    enabled: !!user?.email,
+   enabled: !!user?.email && !loading,
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`);
+      const res = await authFetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`);
       if (!res.ok) throw new Error("Failed to load profile");
-      return res.json();
+      const json = await res.json();
+    return json.user; // ✅ this matches your backend response shape
     },
   });
 
@@ -36,14 +38,14 @@ const ReportIssue = () => {
     queryKey: ["my-issues", user?.email],
     enabled: !!user?.email,
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/issues?reportedBy=${encodeURIComponent(user.email)}&page=1&limit=50`);
+      const res = await authFetch(`${API_BASE}/issues?reportedBy=${encodeURIComponent(user.email)}&page=1&limit=50`);
       if (!res.ok) throw new Error("Failed to load issues");
       return res.json();
     },
   });
 
-  const isPremium = !!profileQuery.data?.isPremium;
-  const isBlocked = !!profileQuery.data?.isBlocked;
+ const isPremium = !!profileQuery.data?.isPremium;
+ const isBlocked = !!profileQuery.data?.isBlocked;
   const issuesUsed = myIssuesQuery.data?.issues?.length || 0;
 
   // ✅ Requirement: free users max 3 issues, premium unlimited
@@ -58,7 +60,7 @@ const ReportIssue = () => {
 
   const createMutation = useMutation({
     mutationFn: async (payload) => {
-      const res = await fetch(`${API_BASE}/issues`, {
+      const res = await authFetch(`${API_BASE}/issues`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

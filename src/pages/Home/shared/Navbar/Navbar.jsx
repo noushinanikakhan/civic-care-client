@@ -19,6 +19,7 @@ const Navbar = () => {
 
 
   const links = <>
+       <li> <NavLink to='/'> Home</NavLink></li>
        <li> <NavLink to='all-issues'> All Issues</NavLink></li>
       <li><NavLink to='/help-guidlines'>Help & Guidelines</NavLink></li>
             <li><NavLink to='/about'>About</NavLink></li>
@@ -45,7 +46,7 @@ const Navbar = () => {
        </div>
     </NavLink>
   </div>
-  <div className="navbar-center hidden lg:flex text-[#2d361b]">
+  <div className="navbar-center hidden lg:flex font-semibold text-[#2d361b]">
     <ul className="menu menu-horizontal px-1">
   {links}
     </ul>

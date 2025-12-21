@@ -149,9 +149,9 @@ const Register = () => {
               className="input input-bordered w-full bg-white"
               required
             />
-            <p className="mt-1 text-xs text-[#2d361b]/60">
+            {/* <p className="mt-1 text-xs text-[#2d361b]/60">
               Use a direct image link (Unsplash works).
-            </p>
+            </p> */}
           </div>
 
           <button

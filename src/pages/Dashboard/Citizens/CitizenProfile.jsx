@@ -1,243 +1,348 @@
+// src/pages/Dashboard/Citizens/CitizenProfile.jsx
 import React, { useMemo, useState } from "react";
 import Swal from "sweetalert2";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+
 import useAuth from "../../../hooks/useAuth";
 import { API_BASE } from "../../../utils/api";
 import { authFetch } from "../../../utils/authFetch";
 
+// ✅ make sure this file exists (I gave you before)
+import InvoicePDF from "../../../components/InvoicePDF";
+
 const CitizenProfile = () => {
-const { user, loading } = useAuth();
-  const [editMode, setEditMode] = useState(false);
+  const qc = useQueryClient();
+  const { user, loading } = useAuth();
 
-  
-
+  // -----------------------------
+  // ✅ 1) LOAD PROFILE (Mongo)
+  // -----------------------------
   const profileQuery = useQuery({
     queryKey: ["user-profile", user?.email],
-      enabled: !!user?.email && !loading,   // ✅ PASTE HERE
-
-    enabled: !!user?.email,
+    enabled: !!user?.email && !loading, // ✅ keep ONLY this enabled (no duplicates)
     queryFn: async () => {
-     const res = await authFetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`);
-
-      if (!res.ok) throw new Error("Failed to load profile");
-      return res.json();
+      const res = await authFetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || "Failed to load profile");
+      return json.user; // server returns { success:true, user:{} }
     },
   });
 
-  const issuesQuery = useQuery({
-    queryKey: ["my-issues", user?.email],
-    enabled: !!user?.email,
+  // const displayPhoto = profile?.photoURL || user?.photoURL || "/default-avatar.png";
+
+
+  // -----------------------------
+  // ✅ 2) LOAD MY PAYMENTS
+  // -----------------------------
+  const paymentsQuery = useQuery({
+    queryKey: ["my-payments", user?.email],
+    enabled: !!user?.email && !loading,
     queryFn: async () => {
-      const res = await fetch(
-        `${API_BASE}/issues?reportedBy=${encodeURIComponent(
-          user.email
-        )}&page=1&limit=50`
-      );
-      if (!res.ok) throw new Error("Failed to load issues");
-      return res.json();
+      const res = await authFetch(`${API_BASE}/payments/my`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || "Failed to load payments");
+      return json.payments || [];
     },
   });
 
-  // ✅ IMPORTANT: compute safe values BEFORE any return
-  const profile = profileQuery.data || {};
-  const issues = issuesQuery.data?.issues || [];
+  const profile = profileQuery.data;
+  const myPayments = paymentsQuery.data || [];
+
+  const latestPayment = myPayments[0];
+  const totalPayments = useMemo(() => myPayments.reduce((sum, p) => sum + (p.amount || 0), 0), [myPayments]);
 
   const isPremium = !!profile?.isPremium;
   const isBlocked = !!profile?.isBlocked;
 
-  // ✅ IMPORTANT: useMemo must be above any return (fixes hook order crash)
-  const stats = useMemo(() => {
-    const total = issues.length;
-    const pending = issues.filter(
-      (i) => (i.status || "").toLowerCase() === "pending"
-    ).length;
-    const resolved = issues.filter(
-      (i) => (i.status || "").toLowerCase() === "resolved"
-    ).length;
-    return { total, pending, resolved };
-  }, [issues]);
+  // -----------------------------
+  // ✅ 3) LOCAL STATE FOR EDIT
+  // -----------------------------
+  const [name, setName] = useState("");
+  const [photoURL, setPhotoURL] = useState("");
 
-  const issueLimit = isPremium ? Infinity : 3;
-  const issuesUsed = issues.length;
-  const remaining = isPremium ? "Unlimited" : Math.max(0, 3 - issuesUsed);
+  React.useEffect(() => {
+    if (profile) {
+      setName(profile?.name || "");
+      setPhotoURL(profile?.photoURL || "");
+    }
+  }, [profile?._id]); // only reset when user doc changes
 
-  // ✅ Now it's safe to return early (ALL hooks already ran)
-  if (!user || profileQuery.isLoading || issuesQuery.isLoading) {
+  // -----------------------------
+  // ✅ 4) UPDATE PROFILE (Mongo)
+  // -----------------------------
+  const updateProfileMutation = useMutation({
+    mutationFn: async () => {
+      const res = await authFetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name, photoURL }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || "Failed to update profile");
+      return json;
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["user-profile", user?.email] });
+      Swal.fire({ icon: "success", title: "Profile updated", timer: 1100, showConfirmButton: false });
+    },
+    onError: (err) => {
+      Swal.fire({ icon: "error", title: "Update Failed", text: err.message, confirmButtonColor: "#2d361b" });
+    },
+  });
+
+  // -----------------------------
+  // ✅ 5) SUBSCRIBE PREMIUM (1000tk)
+  // -----------------------------
+  const subscribeMutation = useMutation({
+    mutationFn: async () => {
+      const transactionId = `TRX-${Date.now()}`; // assignment
+      const res = await authFetch(`${API_BASE}/payments/subscribe`, {
+        method: "POST",
+        body: JSON.stringify({ transactionId, method: "assignment" }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || "Payment failed");
+      return json;
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["user-profile", user?.email] });
+      await qc.invalidateQueries({ queryKey: ["my-payments", user?.email] });
+
+      Swal.fire({ icon: "success", title: "Premium activated!", timer: 1200, showConfirmButton: false });
+    },
+    onError: (err) => {
+      Swal.fire({ icon: "error", title: "Payment Failed", text: err.message, confirmButtonColor: "#2d361b" });
+    },
+  });
+
+  const handleSubscribe = async () => {
+    if (isBlocked) {
+      Swal.fire({
+        icon: "warning",
+        title: "Blocked user",
+        text: "You are blocked. Please contact the authorities.",
+        confirmButtonColor: "#2d361b",
+      });
+      return;
+    }
+
+    if (isPremium) {
+      Swal.fire({
+        icon: "info",
+        title: "Already Premium",
+        text: "You already have premium access.",
+        confirmButtonColor: "#2d361b",
+      });
+      return;
+    }
+
+    const ok = await Swal.fire({
+      icon: "question",
+      title: "Subscribe for 1000tk?",
+      text: "After payment you can report unlimited issues.",
+      showCancelButton: true,
+      confirmButtonColor: "#2d361b",
+      confirmButtonText: "Pay 1000tk",
+    });
+
+    if (ok.isConfirmed) subscribeMutation.mutate();
+  };
+
+  // -----------------------------
+  // ✅ LOADING / ERROR UI
+  // -----------------------------
+  if (loading || profileQuery.isLoading || paymentsQuery.isLoading) {
     return (
-      <div className="min-h-screen bg-[#eff0e1] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#eff0e1]">
         <span className="loading loading-infinity loading-xl"></span>
       </div>
     );
   }
 
-  if (profileQuery.isError || issuesQuery.isError) {
+  if (profileQuery.isError) {
     return (
-      <div className="min-h-screen bg-[#eff0e1] flex items-center justify-center">
-        <p className="text-[#2d361b] font-semibold">Failed to load profile.</p>
+      <div className="bg-[#eff0e1] min-h-screen flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl p-6 border border-[#2d361b]/10 w-full max-w-xl">
+          <p className="text-[#2d361b] font-semibold">Failed to load profile.</p>
+          <p className="text-[#2d361b]/70 mt-2">{String(profileQuery.error?.message || "")}</p>
+        </div>
       </div>
     );
   }
 
   return (
     <section className="bg-[#eff0e1] min-h-screen py-8">
-      <div className="w-11/12 mx-auto max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#2d361b]">My Profile</h1>
-          <p className="text-[#2d361b]/70 mt-2">
-            Manage your account and check activity
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-2xl p-8 border border-[#2d361b]/10">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                <div className="relative">
-                  <img
-                    src={
-                      user.photoURL ||
-                      profile.photoURL ||
-                      `https://api.dicebear.com/7.x/initials/svg?seed=${
-                        user.displayName || user.email
-                      }&backgroundColor=2d361b&fontColor=d6d37c`
-                    }
-                    alt="Profile"
-                    className="w-32 h-32 rounded-full border-4 border-[#2d361b]/30 object-cover"
-                  />
-                  {isPremium && (
-                    <div className="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                      PREMIUM
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-[#2d361b]">
-                    {user.displayName ||
-                      profile.name ||
-                      user.email?.split("@")[0]}
-                  </h2>
-                  <p className="text-[#2d361b]/70">{user.email}</p>
-
-                  <div className="flex gap-2 mt-3 flex-wrap">
-                    <span
-                      className={`badge border-none ${
-                        isPremium
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {isPremium ? "Premium Member" : "Free Account"}
-                    </span>
-
-                    {isBlocked && (
-                      <span className="badge bg-red-100 text-red-800 border-none">
-                        Account Blocked
-                      </span>
-                    )}
-
-                    <span className="badge bg-[#eff0e1] text-[#2d361b] border-none">
-                      Role: {profile.role}
-                    </span>
-                  </div>
-
-                  <div className="mt-6">
-                    <div className="flex justify-between text-sm text-[#2d361b] mb-2">
-                      <span>Issue Submission Limit</span>
-                      <span>
-                        {issuesUsed} / {isPremium ? "∞" : issueLimit} used
-                      </span>
-                    </div>
-
-                    <progress
-                      className="progress progress-success w-full h-3"
-                      value={isPremium ? 1 : Math.min(issuesUsed, 3)}
-                      max={isPremium ? 1 : 3}
-                    ></progress>
-
-                    <p className="text-sm text-[#2d361b]/60 mt-2">
-                      {isPremium
-                        ? "Unlimited submissions enabled."
-                        : `Remaining: ${remaining}`}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3 mt-8 pt-6 border-t border-[#2d361b]/10">
-                <button
-                  onClick={() => {
-                    Swal.fire({
-                      icon: "info",
-                      title: "Edit Profile",
-                      text: "Connect profile update with backend later (optional).",
-                      confirmButtonColor: "#2d361b",
-                    });
-                    setEditMode(!editMode);
-                  }}
-                  className="btn bg-[#2d361b] text-[#d6d37c] rounded-2xl"
-                >
-                  {editMode ? "Close Edit" : "Edit Profile"}
-                </button>
-
-                {!isPremium && (
-                  <button
-                    onClick={() => {
-                      Swal.fire({
-                        icon: "info",
-                        title: "Premium Payment",
-                        text: "You said you will implement payment later — keep this for later.",
-                        confirmButtonColor: "#2d361b",
-                      });
-                    }}
-                    className="btn bg-green-600 text-white rounded-2xl ml-auto hover:bg-green-700"
-                  >
-                    Upgrade to Premium - 1000tk
-                  </button>
-                )}
-              </div>
-            </div>
+      <div className="w-11/12 mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-[#2d361b]">My Profile</h1>
+            <p className="text-[#2d361b]/70 mt-2">View and update your profile information.</p>
           </div>
 
-          <div className="space-y-8">
-            <div className="bg-gradient-to-br from-[#1c260f] to-[#1f2b12] text-[#f4f6e8] rounded-2xl p-6 border border-[#2f3a1a]">
-              <h3 className="text-xl font-semibold mb-6">Your Activity</h3>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-[#1a220e] rounded-xl">
-                  <span>Total Issues</span>
-                  <span className="font-bold">{stats.total}</span>
-                </div>
-
-                <div className="flex justify-between items-center p-3 bg-[#1a220e] rounded-xl">
-                  <span>Pending Issues</span>
-                  <span className="font-bold">{stats.pending}</span>
-                </div>
-
-                <div className="flex justify-between items-center p-3 bg-[#1a220e] rounded-xl">
-                  <span>Resolved Issues</span>
-                  <span className="font-bold">{stats.resolved}</span>
-                </div>
-
-                <div className="flex justify-between items-center p-3 bg-[#1a220e] rounded-xl">
-                  <span>Total Payments</span>
-                  <span className="font-bold">0 tk</span>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {isPremium && (
+              <span className="badge badge-success text-white px-4 py-3 rounded-xl">Premium</span>
+            )}
 
             {isBlocked && (
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
-                <h4 className="font-bold text-red-800 mb-2">
-                  Account Restricted
-                </h4>
-                <p className="text-sm text-red-700">
-                  Your account is blocked by admin. You should disable
-                  submitting/upvoting/boosting.
-                </p>
-              </div>
+              <span className="badge badge-error text-white px-4 py-3 rounded-xl">Blocked</span>
+            )}
+
+            {!isPremium && (
+              <button
+                onClick={handleSubscribe}
+                disabled={subscribeMutation.isPending}
+                className="btn rounded-2xl bg-green-600 text-white hover:bg-green-700"
+              >
+                {subscribeMutation.isPending ? "Processing..." : "Subscribe 1000tk"}
+              </button>
+            )}
+
+            {latestPayment && (
+              <PDFDownloadLink
+                document={<InvoicePDF payment={latestPayment} />}
+                fileName={`invoice-${latestPayment.transactionId || "premium"}.pdf`}
+                className="btn rounded-2xl btn-outline border-[#2d361b] text-[#2d361b]"
+              >
+                Download Invoice
+              </PDFDownloadLink>
             )}
           </div>
+        </div>
+
+        {/* Blocked warning */}
+        {isBlocked && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
+            <p className="text-red-700 font-semibold">You are blocked by admin.</p>
+            <p className="text-red-700/80 mt-1">
+              You can log in, but cannot submit, edit, upvote, or boost issues. Please contact authorities.
+            </p>
+          </div>
+        )}
+
+        {/* Profile card */}
+        <div className="bg-white rounded-2xl border border-[#2d361b]/10 p-6">
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            <div className="flex items-center gap-4">
+              <div className="avatar">
+                <div className="w-20 rounded-2xl ring ring-[#2d361b]/20 ring-offset-base-100 ring-offset-2">
+                  <img
+                    src={photoURL || "https://i.ibb.co/2P9QmWJ/default-avatar.png"}
+                    alt="Profile"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xl font-bold text-[#2d361b]">{profile?.name || "Unnamed"}</p>
+                <p className="text-[#2d361b]/70">{profile?.email}</p>
+                <p className="text-sm text-[#2d361b]/70 mt-1">Role: {profile?.role || "citizen"}</p>
+              </div>
+            </div>
+
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="label">
+                  <span className="label-text text-[#2d361b] font-semibold">Name</span>
+                </label>
+                <input
+                  className="input input-bordered w-full rounded-2xl"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  disabled={isBlocked}
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text text-[#2d361b] font-semibold">Photo URL</span>
+                </label>
+                <input
+                  className="input input-bordered w-full rounded-2xl"
+                  value={photoURL}
+                  onChange={(e) => setPhotoURL(e.target.value)}
+                  placeholder="https://..."
+                  disabled={isBlocked}
+                />
+              </div>
+
+              <div className="md:col-span-2 flex justify-end">
+                <button
+                  onClick={() => updateProfileMutation.mutate()}
+                  disabled={isBlocked || updateProfileMutation.isPending}
+                  className="btn rounded-2xl bg-[#2d361b] text-[#d6d37c] hover:bg-[#233015]"
+                >
+                  {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Payments summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-2xl p-6 border border-[#2d361b]/10">
+            <p className="text-sm text-[#2d361b]/70">Subscription</p>
+            <p className="text-2xl font-bold text-[#2d361b] mt-2">
+              {isPremium ? "Premium" : "Free"}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-[#2d361b]/10">
+            <p className="text-sm text-[#2d361b]/70">Total Payments</p>
+            <p className="text-2xl font-bold text-[#2d361b] mt-2">{totalPayments} tk</p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-[#2d361b]/10">
+            <p className="text-sm text-[#2d361b]/70">Last Transaction</p>
+            <p className="text-sm font-semibold text-[#2d361b] mt-2 break-all">
+              {latestPayment?.transactionId || "-"}
+            </p>
+          </div>
+        </div>
+
+        {/* Payments table (optional but helpful) */}
+        <div className="bg-white rounded-2xl border border-[#2d361b]/10 overflow-x-auto">
+          <table className="table">
+            <thead>
+              <tr className="text-[#2d361b]">
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Transaction</th>
+                <th>Date</th>
+                <th className="text-right">Invoice</th>
+              </tr>
+            </thead>
+            <tbody>
+              {myPayments.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-[#2d361b]/70">
+                    No payments found.
+                  </td>
+                </tr>
+              ) : (
+                myPayments.map((p) => (
+                  <tr key={p._id}>
+                    <td>{p.amount} tk</td>
+                    <td>{p.method || "-"}</td>
+                    <td className="text-xs">{p.transactionId || "-"}</td>
+                    <td>{p.createdAt ? new Date(p.createdAt).toLocaleString() : "-"}</td>
+                    <td className="text-right">
+                      <PDFDownloadLink
+                        document={<InvoicePDF payment={p} />}
+                        fileName={`invoice-${p.transactionId || "payment"}.pdf`}
+                        className="btn btn-sm rounded-xl bg-[#2d361b] text-[#d6d37c]"
+                      >
+                        Download
+                      </PDFDownloadLink>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
