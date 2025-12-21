@@ -14,6 +14,21 @@ const AdminDashboard = () => {
     },
   });
 
+  // ✅ NEW: latest payments
+  const {
+    data: paymentsData,
+    isLoading: payLoading,
+    isError: payError,
+  } = useQuery({
+    queryKey: ["admin-latest-payments"],
+    queryFn: async () => {
+      const res = await authFetch(`${API_BASE}/admin/payments`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || "Failed to load payments");
+      return json;
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#eff0e1]">
@@ -36,6 +51,9 @@ const AdminDashboard = () => {
 
   const recentIssues = data?.recentIssues || [];
   const recentUsers = data?.recentUsers || [];
+
+  // ✅ NEW: latest payments list
+  const latestPayments = paymentsData?.payments?.slice(0, 6) || [];
 
   return (
     <section className="bg-[#eff0e1] min-h-screen py-8">
@@ -129,10 +147,36 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Payments placeholder */}
+        {/* ✅ Latest Payments (dynamic) */}
         <div className="bg-white rounded-2xl p-6 border border-[#2d361b]/10">
-          <h3 className="text-xl font-semibold text-[#2d361b] mb-2">Latest Payments</h3>
-          <p className="text-[#2d361b]/70">You said you will implement payment last — keep this placeholder for now.</p>
+          <h3 className="text-xl font-semibold text-[#2d361b] mb-4">Latest Payments</h3>
+
+          {payLoading ? (
+            <span className="loading loading-infinity loading-md"></span>
+          ) : payError ? (
+            <p className="text-[#2d361b]/70">Failed to load latest payments.</p>
+          ) : latestPayments.length === 0 ? (
+            <p className="text-[#2d361b]/70">No payments found yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {latestPayments.map((p) => (
+                <div key={p._id} className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-[#2d361b]">{p.email}</p>
+                    <p className="text-sm text-[#2d361b]/70">
+                      {p.method || "assignment"} • TRX: {p.transactionId || "N/A"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-[#2d361b]">৳{p.amount || 0}</p>
+                    <p className="text-xs text-[#2d361b]/60">
+                      {p.createdAt ? new Date(p.createdAt).toLocaleString() : ""}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>

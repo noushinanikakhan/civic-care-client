@@ -184,7 +184,7 @@ const handleUpvote = async (issue) => {
           )}
         </form>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
+<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-8">
           {issues.map((issue) => (
             <div
               key={issue._id}

@@ -48,29 +48,22 @@ const saveUserToDB = async (currentUser) => {
 // ✅ Fix the useEffect
 useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-    console.log("Auth state changed:", currentUser?.email);
-    
-    if (currentUser) {
-      try {
-        // Save user to MongoDB and WAIT for it to complete
-        await saveUserToDB(currentUser);
-        console.log("✅ User saved to MongoDB successfully");
-        
-        // Now update the user state
-        setUser(currentUser);
-      } catch (error) {
-        console.error("❌ Failed to save user to DB:", error);
-        setUser(currentUser); // Still set user even if DB save fails
-      }
-    } else {
-      setUser(null);
-    }
-    
+    setUser(currentUser);
     setLoading(false);
+
+    // ✅ If logged in, sync to Mongo (won't overwrite photoURL now)
+    if (currentUser?.email) {
+      try {
+        await saveUserToDB(currentUser);
+      } catch (e) {
+        console.error("Mongo sync failed:", e);
+      }
+    }
   });
 
   return () => unsubscribe();
 }, []);
+
 
 
   const registerUser = (email, password) => {

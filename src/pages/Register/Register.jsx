@@ -16,22 +16,12 @@ const Register = () => {
     const password = e.target.password.value;
     const photoURL = e.target.photoURL.value.trim();
 
-    if (!name || !email || !password || !photoURL) {
+    // ✅ client-side validation to avoid 400
+    if (!photoURL) {
       Swal.fire({
-        icon: "warning",
-        title: "Missing information",
-        text: "Name, email, password, and Photo URL are required.",
-        confirmButtonColor: "#2d361b",
-      });
-      return;
-    }
-
-    if (password.length < 6) {
-      Swal.fire({
-        icon: "warning",
-        title: "Weak password",
-        text: "Password should be at least 6 characters.",
-        confirmButtonColor: "#2d361b",
+        icon: "error",
+        title: "Photo URL required",
+        text: "Paste an Unsplash/public image link.",
       });
       return;
     }
@@ -39,25 +29,39 @@ const Register = () => {
     try {
       setLoading(true);
 
+      // 1) Firebase create user
       await registerUser(email, password);
 
-      // ✅ This is what makes photo show in Navbar
+      // 2) Firebase profile update (for navbar display)
       await updateUserProfile(name, photoURL);
+
+      // 3) Save user to MongoDB (MUST succeed)
+      const mongoRes = await fetch("http://localhost:3000/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name, photoURL }),
+      });
+
+      const mongoData = await mongoRes.json();
+
+      if (!mongoRes.ok || !mongoData.success) {
+        throw new Error(mongoData?.message || "Failed to save user in MongoDB");
+      }
 
       Swal.fire({
         icon: "success",
-        title: "Account created",
-        text: "Registration completed successfully.",
-        confirmButtonColor: "#2d361b",
+        title: "Registration Successful",
+        timer: 1200,
+        showConfirmButton: false,
       });
 
-      navigate("/", { replace: true });
+      navigate("/");
     } catch (err) {
+      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Registration failed",
-        text: err?.message || "Please try again.",
-        confirmButtonColor: "#2d361b",
+        text: err?.message || "Something went wrong",
       });
     } finally {
       setLoading(false);
@@ -67,22 +71,53 @@ const Register = () => {
   const handleGoogleRegister = async () => {
     try {
       setLoading(true);
-      await googleSignIn();
+
+      const result = await googleSignIn();
+      const currentUser = result.user;
+
+      const email = (currentUser.email || "").trim();
+      const name =
+        (currentUser.displayName || "").trim() || email.split("@")[0];
+
+      // ✅ Google must also provide a photoURL (backend requires it)
+      // If Google photoURL is missing, block and ask user to use email/password register or set photo.
+      const photoURL = (currentUser.photoURL || "").trim();
+
+      if (!photoURL) {
+        Swal.fire({
+          icon: "error",
+          title: "Google photo missing",
+          text: "Your Google account did not provide a photo URL. Please register with email + photo URL.",
+        });
+        return;
+      }
+
+      const mongoRes = await fetch("http://localhost:3000/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name, photoURL }),
+      });
+
+      const mongoData = await mongoRes.json();
+
+      if (!mongoRes.ok || !mongoData.success) {
+        throw new Error(mongoData?.message || "Failed to save Google user in DB");
+      }
 
       Swal.fire({
         icon: "success",
-        title: "Signed up with Google",
-        text: "Your account is ready.",
-        confirmButtonColor: "#2d361b",
+        title: "Logged in",
+        timer: 900,
+        showConfirmButton: false,
       });
 
-      navigate("/", { replace: true });
+      navigate("/dashboard");
     } catch (err) {
+      console.error(err);
       Swal.fire({
         icon: "error",
-        title: "Google sign-up failed",
-        text: err?.message || "Please try again.",
-        confirmButtonColor: "#2d361b",
+        title: "Google login failed",
+        text: err?.message || "Try again",
       });
     } finally {
       setLoading(false);
@@ -93,9 +128,7 @@ const Register = () => {
     <section className="min-h-screen bg-[#eff0e1] flex items-center justify-center py-10">
       <div className="w-11/12 max-w-xl rounded-3xl border border-[#2d361b]/10 bg-white/60 p-8">
         <h2 className="text-2xl font-bold text-[#2d361b]">Create Account</h2>
-        <p className="mt-2 text-[#2d361b]/70">
-          Paste a photo URL (Unsplash or any public image link).
-        </p>
+        <p className="mt-2 text-[#2d361b]/70">Paste a photo URL.</p>
 
         <form onSubmit={handleRegister} className="mt-6 space-y-4">
           <div>
@@ -137,7 +170,6 @@ const Register = () => {
             />
           </div>
 
-          {/* ✅ Photo URL required */}
           <div>
             <label className="label">
               <span className="label-text text-[#2d361b]">Photo URL</span>
@@ -149,9 +181,6 @@ const Register = () => {
               className="input input-bordered w-full bg-white"
               required
             />
-            {/* <p className="mt-1 text-xs text-[#2d361b]/60">
-              Use a direct image link (Unsplash works).
-            </p> */}
           </div>
 
           <button

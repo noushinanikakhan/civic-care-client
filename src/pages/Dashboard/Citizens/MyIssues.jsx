@@ -7,7 +7,7 @@ import { API_BASE } from "../../../utils/api";
 import { authFetch } from "../../../utils/authFetch";
 
 const MyIssues = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const queryClient = useQueryClient();
 
   const modalRef = useRef(null);
@@ -27,7 +27,7 @@ const MyIssues = () => {
   // ✅ IMPORTANT: use secured endpoint (your backend already has /my-issues)
   const { data, isLoading, isError } = useQuery({
     queryKey: ["my-issues", user?.email],
-    enabled: !!user?.email,
+  enabled: !!user?.email && !loading,  
     queryFn: async () => {
       const res = await authFetch(`${API_BASE}/my-issues?page=1&limit=50`);
       if (!res.ok) throw new Error("Failed to load issues");

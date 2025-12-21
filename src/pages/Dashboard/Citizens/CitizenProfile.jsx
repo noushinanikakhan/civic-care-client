@@ -29,7 +29,14 @@ const CitizenProfile = () => {
     },
   });
 
-  // const displayPhoto = profile?.photoURL || user?.photoURL || "/default-avatar.png";
+   // ✅ FIX 1: define profile BEFORE using it anywhere
+  const profile = profileQuery.data;
+
+  // ✅ FIX 2: safe image fallback (Mongo photoURL -> Firebase photoURL -> default)
+  const displayPhoto =
+    profile?.photoURL ||
+    user?.photoURL ||
+    "https://i.ibb.co/2P9QmWJ/default-avatar.png";
 
 
   // -----------------------------
@@ -46,7 +53,7 @@ const CitizenProfile = () => {
     },
   });
 
-  const profile = profileQuery.data;
+  // const profile = profileQuery.data;
   const myPayments = paymentsQuery.data || [];
 
   const latestPayment = myPayments[0];
