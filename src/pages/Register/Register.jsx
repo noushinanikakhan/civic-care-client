@@ -36,7 +36,7 @@ const Register = () => {
       await updateUserProfile(name, photoURL);
 
       // 3) Save user to MongoDB (MUST succeed)
-      const mongoRes = await fetch("http://localhost:3000/users", {
+      const mongoRes = await fetch("https://civic-care-server.vercel.app/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, name, photoURL }),
@@ -92,7 +92,7 @@ const Register = () => {
         return;
       }
 
-      const mongoRes = await fetch("http://localhost:3000/users", {
+      const mongoRes = await fetch("https://civic-care-server.vercel.app/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, name, photoURL }),

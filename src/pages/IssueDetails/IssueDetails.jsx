@@ -29,7 +29,7 @@ const IssueDetails = () => {
   const { data: response, isLoading, error } = useQuery({
     queryKey: ["issue", id],
     queryFn: async () => {
-      const res = await fetch(`http://localhost:3000/issues/${id}`);
+      const res = await fetch(`https://civic-care-server.vercel.app/issues/${id}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Failed to fetch issue");
       return data; // Returns { success: true, issue: {...} }
@@ -90,7 +90,7 @@ const upvoteMutation = useMutation({
   // ✅ Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`http://localhost:3000/issues/${id}`, {
+      const res = await fetch(`https://civic-care-server.vercel.app/issues/${id}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${await user?.getIdToken()}` // ✅ Add token for DELETE

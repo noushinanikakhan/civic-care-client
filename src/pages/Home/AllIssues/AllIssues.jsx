@@ -7,8 +7,6 @@ import { authFetch } from "../../../utils/authFetch";
 import { API_BASE } from "../../../utils/api";
 
 
-// const API_BASE = "http://localhost:3000";
-
 const AllIssues = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
