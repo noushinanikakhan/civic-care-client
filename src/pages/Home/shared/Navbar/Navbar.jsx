@@ -84,7 +84,7 @@ const getInitials = (nameOrEmail = "") => {
   </>
 
     // ✅ PUT THIS HERE (right before JSX return)
-  if (user && (loading || profileLoading)) {
+  if (user && (authLoading || profileLoading)) {
     return <div className="navbar bg-[#eff0e1] h-16"></div>;
   }
 
@@ -124,10 +124,13 @@ const getInitials = (nameOrEmail = "") => {
                     alt={displayName}
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.parentElement.querySelector('.avatar-fallback')?.style.display = 'flex';
-                    }}
+          onError={(e) => {
+  e.target.style.display = 'none';
+  const fallback = e.target.parentElement.querySelector('.avatar-fallback');
+  if (fallback) {
+    fallback.style.display = 'flex';
+  }
+}}
                   />
                 ) : null}
                 <div 

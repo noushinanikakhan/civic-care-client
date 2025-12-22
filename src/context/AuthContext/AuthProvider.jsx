@@ -10,6 +10,7 @@ import {
   GoogleAuthProvider,
 } from "firebase/auth";
 import { auth } from "../../firebase/firebase.init";
+import { API_BASE } from "../../utils/api";
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -28,7 +29,7 @@ const saveUserToDB = async (currentUser) => {
   };
 
   try {
-    const response = await fetch("https://civic-care-server.vercel.app/users", {
+    const response = await fetch(`${API_BASE}/users`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -59,6 +60,7 @@ useEffect(() => {
         console.error("Mongo sync failed:", e);
       }
     }
+     setLoading(false); // ✅ CHANGED: moved AFTER sync attempt
   });
 
   return () => unsubscribe();
