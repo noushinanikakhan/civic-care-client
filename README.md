@@ -1,16 +1,221 @@
-# React + Vite
+🏙️ CivicCare – Public Infrastructure Issue Reporting System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+🌐 Live Website
 
-Currently, two official plugins are available:
+Client: https://civic-care-ed056.web.app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Server: https://civic-care-server.vercel.app
 
-## React Compiler
+🔐 Admin Credentials (For Evaluation)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Admin Email: bangladesh@bd.com
 
-## Expanding the ESLint configuration
+Admin Password: ****** 
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+📌 Project Overview
+
+CivicCare is a full-stack public infrastructure issue reporting system that enables citizens to report civic problems such as potholes, streetlight failures, garbage overflow, and water leaks. Admins and staff can manage, assign, track, and resolve issues through a role-based dashboard system.
+
+🚀 Key Features (Highlights)
+
+Role-based system – Citizen, Staff, and Admin dashboards with protected routes
+
+Issue reporting with title, description, category, image, and location
+
+Issue lifecycle tracking (Pending → In-Progress → Resolved → Closed)
+
+Timeline system showing full issue history (read-only audit trail)
+
+Upvote system (one upvote per user, cannot upvote own issue)
+
+Premium subscription for unlimited issue reporting
+
+Issue boosting via payment (priority set to High)
+
+Staff assignment by admin with instant dashboard visibility
+
+Staff status updates with enforced status flow
+
+Admin user management (block/unblock citizens)
+
+Admin staff management (create, update, delete staff)
+
+Firebase Authentication (Email/Password + Google Login)
+
+MongoDB persistence with secure token verification
+
+Responsive UI (mobile, tablet, desktop)
+
+SweetAlert notifications for all actions
+
+TanStack Query for all server data fetching
+
+Server-side pagination, filtering & search
+
+CORS-secured production deployment
+
+Environment variable protection
+
+Deployed on Firebase Hosting & Vercel
+
+🧭 Application Structure
+🏠 Home Page
+
+Navbar with profile dropdown
+
+Hero banner
+
+Latest Resolved Issues section (sorted)
+
+Feature & How-it-Works sections
+
+Footer
+
+📄 All Issues Page (/all-issues)
+
+Paginated issue cards
+
+Filters: category, status, priority
+
+Server-side search
+
+Upvote button with instant UI update
+
+View Details navigation
+
+🔍 Issue Details Page (Private)
+
+Full issue information
+
+Timeline / Tracking UI
+
+Edit/Delete (if owner & pending)
+
+Boost priority (paid)
+
+Assigned staff info
+
+Upvote count visibility
+
+👤 Citizen Dashboard
+
+Routes
+
+Dashboard overview (stats & charts)
+
+My Issues (edit/delete/view)
+
+Report Issue (limit enforced for free users)
+
+Profile page (subscription & update info)
+
+Rules
+
+Free users: max 3 issues
+
+Premium users: unlimited issues
+
+Blocked users: login allowed, actions disabled
+
+🧑‍🔧 Staff Dashboard
+
+Assigned issues only
+
+Status update workflow:
+
+Pending → In-Progress → Working → Resolved → Closed
+
+Timeline entry created for each status change
+
+Profile update page
+
+🛠️ Admin Dashboard
+
+System statistics & charts
+
+All issues table
+
+Assign staff (one-time assignment)
+
+Reject pending issues
+
+Manage citizens (block/unblock)
+
+Manage staff (create/update/delete)
+
+Payments overview
+
+Admin profile update
+
+💳 Payments System
+
+Subscription payment (1000৳)
+
+Issue boost payment (100৳ per issue)
+
+Admin payments table
+
+User & admin payment visibility
+
+(PDF invoice generation supported as challenge task)
+
+🔐 Security & Architecture
+
+Firebase Authentication
+
+JWT token verification
+
+Role-based middleware
+
+Secure CORS configuration
+
+Environment variables for secrets
+
+No passwords stored for citizens
+
+Staff passwords stored only for assignment evaluation
+
+🧩 Tech Stack
+Frontend
+
+React + Vite
+
+Tailwind CSS + DaisyUI
+
+React Router
+
+TanStack Query
+
+Firebase Authentication
+
+SweetAlert2
+
+Backend
+
+Node.js
+
+Express.js
+
+MongoDB
+
+Firebase Admin SDK
+
+JWT Verification
+
+Vercel Deployment
+
+📦 Deployment
+
+Client: Firebase Hosting
+
+Server: Vercel
+
+Environment Variables: .env protected
+
+📁 GitHub Repositories
+
+Client Repo: https://github.com/noushinanikakhan/civic-care-client
+
+Server Repo: https://github.com/noushinanikakhan/civic-care-server
+
