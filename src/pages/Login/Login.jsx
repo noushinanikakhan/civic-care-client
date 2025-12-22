@@ -19,71 +19,79 @@ const Login = () => {
   const { loginUser , googleSignIn } = useAuth(); 
 
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    const email = e.target.email.value.trim();
-    const password = e.target.password.value;
+const handleLogin = async (e) => {
+  e.preventDefault();
+  const email = e.target.email.value.trim();
+  const password = e.target.password.value;
 
-    if (!email || !password) {
-      Swal.fire({
-        icon: "warning",
-        title: "Missing information",
-        text: "Please enter both email and password.",
-        confirmButtonColor: "#2d361b",
-      });
-      return;
+  if (!email || !password) {
+    Swal.fire({
+      icon: "warning",
+      title: "Missing information",
+      text: "Please enter both email and password.",
+      confirmButtonColor: "#2d361b",
+    });
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    // 1. Firebase login
+    await loginUser(email, password);
+    
+    // 2. Wait a moment for Firebase to settle
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 3. Get current user
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      throw new Error("Login successful but user not found");
     }
 
+    // 4. Sync with MongoDB (don't force photoURL)
     try {
-      setLoading(true);
-
-      // ✅ connect your auth
-await loginUser(email, password);
-
-// sync Mongo user (email/password → no photo required)
-await authFetch(`${API_BASE}/users`, {
-  method: "POST",
-  body: JSON.stringify({
-    email,
-    name: email.split("@")[0],
-    photoURL: "",
-  }),
-});
-
-// 🔥 force Navbar to refetch Mongo profile
-await qc.invalidateQueries({ queryKey: ["user-profile", email] });
-
-Swal.fire({
-  icon: "success",
-  title: "Login successful",
-  text: "Welcome back to CivicCare.",
-  confirmButtonColor: "#2d361b",
-});
-
-navigate(from, { replace: true });
-
-
-
-      Swal.fire({
-        icon: "success",
-        title: "Login successful",
-        text: "Welcome back to CivicCare.",
-        confirmButtonColor: "#2d361b",
+      await fetch(`${API_BASE}/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: currentUser.email,
+          name: currentUser.displayName || currentUser.email.split("@")[0],
+          photoURL: currentUser.photoURL || "",
+        }),
       });
-
-      navigate(from, { replace: true });
-    } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Login failed",
-        text: err?.message || "Please check your credentials and try again.",
-        confirmButtonColor: "#2d361b",
-      });
-    } finally {
-      setLoading(false);
+    } catch (mongoError) {
+      console.warn("MongoDB sync failed (non-critical):", mongoError);
+      // Continue even if MongoDB sync fails
     }
-  };
 
+    // 5. Invalidate queries to refresh navbar
+    await qc.invalidateQueries({ queryKey: ["user-profile", email] });
+    await qc.invalidateQueries({ queryKey: ["dashboard-role", email] });
+
+    Swal.fire({
+      icon: "success",
+      title: "Login successful",
+      text: "Welcome back to CivicCare.",
+      confirmButtonColor: "#2d361b",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+
+    navigate(from, { replace: true });
+  } catch (err) {
+    console.error("Login error:", err);
+    Swal.fire({
+      icon: "error",
+      title: "Login failed",
+      text: err?.message || "Please check your credentials and try again.",
+      confirmButtonColor: "#2d361b",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
   const qc = useQueryClient();
   
 
