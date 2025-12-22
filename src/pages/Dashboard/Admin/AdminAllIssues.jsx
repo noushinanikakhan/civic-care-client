@@ -2,8 +2,8 @@ import React, { useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useAuth from "../../../hooks/useAuth";
-import { API_BASE } from "../../../utils/api";
 import { authFetch } from "../../../utils/authFetch";
+import { API_BASE } from "../../../utils/api";
 
 const AdminAllIssues = () => {
   const { user, loading } = useAuth();
@@ -142,8 +142,6 @@ const AdminAllIssues = () => {
       </div>
     );
   }
-
-  // ✅ IMPORTANT: show the real reason (401/403 etc.)
   if (isError) {
     return (
       <div className="bg-[#eff0e1] min-h-screen flex items-center justify-center px-4">

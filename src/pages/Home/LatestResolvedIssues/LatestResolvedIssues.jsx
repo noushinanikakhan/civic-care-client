@@ -7,12 +7,12 @@ const LatestResolvedIssues = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["latest-resolved-issues"],
     queryFn: async () => {
-      // ✅ server-side filter + limit
+    
       const qs = new URLSearchParams();
-      qs.set("status", "resolved");    // filter by status
+      qs.set("status", "resolved");    
       qs.set("page", "1");
-      qs.set("limit", "6");           // at least 6
-      qs.set("sort", "latest");       // if your backend supports it; if not, ignore (won't break)
+      qs.set("limit", "6");         
+      qs.set("sort", "latest");       
 
       const res = await fetch(`${API_BASE}/issues?${qs.toString()}`);
       const json = await res.json().catch(() => ({}));

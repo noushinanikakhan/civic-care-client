@@ -21,7 +21,7 @@ const ReportIssue = () => {
     image: "", 
   });
 
-  // ✅ Get user profile from MongoDB (isPremium / isBlocked / role)
+  // Get user profile from MongoDB (isPremium / isBlocked / role)
   const profileQuery = useQuery({
     queryKey: ["user-profile", user?.email],
    enabled: !!user?.email && !loading,
@@ -29,7 +29,7 @@ const ReportIssue = () => {
       const res = await authFetch(`${API_BASE}/users/profile/${encodeURIComponent(user.email)}`);
       if (!res.ok) throw new Error("Failed to load profile");
       const json = await res.json();
-    return json.user; // ✅ this matches your backend response shape
+    return json.user; 
     },
   });
 

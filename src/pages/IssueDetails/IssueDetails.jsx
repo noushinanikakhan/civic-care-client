@@ -25,7 +25,6 @@ const IssueDetails = () => {
   const { user } = useAuth();
   const [isUpvoting, setIsUpvoting] = useState(false);
 
-  // ✅ FIXED: Properly extract issue from response
   const { data: response, isLoading, error } = useQuery({
     queryKey: ["issue", id],
     queryFn: async () => {

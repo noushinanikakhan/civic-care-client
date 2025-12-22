@@ -2,8 +2,9 @@ import React from "react";
 import { Navigate, useLocation } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import useAuth from "../hooks/useAuth";
-import { API_BASE } from "../utils/api";
+// import { API_BASE } from "../utils/api";
 import { authFetch } from "../utils/authFetch";
+import { API_BASE } from "../utils/api";
 
 const StaffRoute = ({ children }) => {
   const { user, loading } = useAuth();

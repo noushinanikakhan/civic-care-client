@@ -11,7 +11,6 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ after private route redirect, you'll send state: { from: location.pathname }
   const from = location?.state?.from || "/";
 
   const [loading, setLoading] = useState(false);

@@ -3,8 +3,8 @@ import { Link, NavLink, Outlet } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import Logo from "../components/Logo/Logo";
 import useAuth from "../hooks/useAuth";
-import { API_BASE } from "../utils/api";
 import { authFetch } from "../utils/authFetch";
+import { API_BASE } from "../utils/api";
 
 const DashboardLayout = () => {
   const { user, loading } = useAuth();

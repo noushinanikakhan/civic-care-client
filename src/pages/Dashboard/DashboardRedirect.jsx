@@ -2,8 +2,8 @@ import React from "react";
 import { Navigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import useAuth from "../../hooks/useAuth";
-import { API_BASE } from "../../utils/api";
 import { authFetch } from "../../utils/authFetch";
+import { API_BASE } from "../../utils/api";
 
 const DashboardRedirect = () => {
   const { user, loading } = useAuth();

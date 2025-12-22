@@ -75,7 +75,6 @@ const handleUpvote = async (issue) => {
   }
 
   try {
-    // ✅ IMPORTANT: use authFetch so token is attached
     const res = await authFetch(`${API_BASE}/issues/${issue._id}/upvote`, {
       method: "PATCH",
     });
