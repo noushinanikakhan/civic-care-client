@@ -28,7 +28,7 @@ const saveUserToDB = async (currentUser) => {
   };
 
   try {
-    const response = await fetch("http://civic-care-server.vercel.app//users", {
+    const response = await fetch("https://civic-care-server.vercel.app/users", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
